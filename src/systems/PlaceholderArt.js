@@ -231,36 +231,31 @@ function createTukTukTexture(scene) {
   g.destroy();
 }
 
-// Noce di cocco: cade dagli alberi (Livello 6). Ostacolo dall'alto, va evitato.
-// Base 26x26: sfera marrone con i tre "occhi" del cocco e una lucentezza.
+// Noce di cocco VERDE (cocco giovane): cade dagli alberi (Livello 6). Verde così
+// si distingue dal tronco marrone e dal cielo mentre cade. Contorno scuro per
+// staccarla dallo sfondo. Base 26x26 con i tre "occhi" del cocco.
 function createCoconutTexture(scene) {
   if (scene.textures.exists('coconut')) return;
   const g = scene.make.graphics({ add: false });
-  // Guscio.
-  g.fillStyle(0x6b4423, 1);
-  g.fillCircle(13, 13, 12);
-  // Ombra sul fondo (dà volume).
-  g.fillStyle(0x4e3119, 1);
-  g.fillCircle(13, 16, 10);
-  g.fillStyle(0x6b4423, 1);
+  // Contorno scuro (stacca dal tronco/foglie).
+  g.fillStyle(0x184a20, 1);
+  g.fillCircle(13, 13, 13);
+  // Guscio verde.
+  g.fillStyle(0x3fa34d, 1);
   g.fillCircle(13, 12, 11);
-  // Ciuffi di fibra (peli) accennati.
-  g.lineStyle(1, 0x3f2712, 0.8);
-  for (let a = 0; a < 6; a++) {
-    const ang = (Math.PI * 2 * a) / 6;
-    g.beginPath();
-    g.moveTo(13 + Math.cos(ang) * 9, 13 + Math.sin(ang) * 9);
-    g.lineTo(13 + Math.cos(ang) * 12, 13 + Math.sin(ang) * 12);
-    g.strokePath();
-  }
+  // Ombra in basso (volume).
+  g.fillStyle(0x2f7a3a, 1);
+  g.fillCircle(13, 16, 9);
+  g.fillStyle(0x3fa34d, 1);
+  g.fillCircle(13, 11, 9);
+  // Luce in alto a sinistra.
+  g.fillStyle(0x8ee09a, 0.9);
+  g.fillCircle(10, 8, 3.4);
   // I tre "occhi" scuri del cocco.
-  g.fillStyle(0x2e1c0e, 1);
-  g.fillCircle(10, 10, 1.8);
-  g.fillCircle(16, 10, 1.8);
-  g.fillCircle(13, 14, 1.8);
-  // Lucentezza.
-  g.fillStyle(0x9c6b3f, 0.7);
-  g.fillCircle(9, 8, 2.2);
+  g.fillStyle(0x123c18, 1);
+  g.fillCircle(10, 14, 1.6);
+  g.fillCircle(16, 14, 1.6);
+  g.fillCircle(13, 18, 1.6);
 
   g.generateTexture('coconut', 26, 26);
   g.destroy();

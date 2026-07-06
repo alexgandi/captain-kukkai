@@ -47,6 +47,7 @@ export default class GameScene extends Phaser.Scene {
       coconuts: cfg.coconuts,
       stones: cfg.stones,
       lengthMult: cfg.lengthMult,
+      firstStyle: cfg.firstEnemy, // forza il primo nemico (es. foresta: giallo, non viola)
     });
     const worldWidth = level.worldWidth;
     const floorHeight = level.floorHeight;
@@ -112,7 +113,17 @@ export default class GameScene extends Phaser.Scene {
     this.checkpointX = null;
     this.checkpointReached = false;
     if ((cfg.lengthMult || 1) >= 2) {
-      this.checkpointX = Math.round(worldWidth / 2);
+      // La bandierina (e il punto di respawn) va in un punto LIBERO: nessun nemico
+      // entro 130px, così non rinasci addosso a un rosso che ti colpisce subito.
+      const enemyXs = level.enemies.map((e) => e.x);
+      const mid = Math.round(worldWidth / 2);
+      const clear = (x) => !enemyXs.some((ex) => Math.abs(ex - x) < 130);
+      let cx = mid;
+      for (let off = 0; off <= 500; off += 30) {
+        if (clear(mid + off)) { cx = mid + off; break; }
+        if (clear(mid - off)) { cx = mid - off; break; }
+      }
+      this.checkpointX = cx;
       this.drawCheckpointFlag(this.checkpointX, floorTop);
       this.checkpointReached = this.fromCheckpoint; // se rinasco qui, resta valido
     }
@@ -126,6 +137,10 @@ export default class GameScene extends Phaser.Scene {
     // Quando Captain subisce danno aggiorno i cuori; a 0 vite si ricomincia.
     this.player.on('damaged', (lives) => this.hearts.set(lives));
     this.player.on('died', () => this.onPlayerDied());
+
+    // Respawn dal checkpoint: qualche istante di INVULNERABILITÀ, così i nemici
+    // lì attorno (e le loro magie/frecce) non ti colpiscono appena atterri.
+    if (this.fromCheckpoint) this.giveSpawnGrace(2000);
 
     // --- NEMICI (dai dati, ognuno col SUO stile dal mix + mappato alla parola) ---
     this.enemyList = [];
@@ -639,6 +654,21 @@ export default class GameScene extends Phaser.Scene {
     g.lineStyle(2, 0xf2c14e, 1);
     g.strokeTriangle(x + 2, floorTop - 86, x + 40, floorTop - 74, x + 2, floorTop - 62);
     this.checkpointGfx = g;
+  }
+
+  // Invulnerabilità temporanea (senza perdere vite): usata al respawn dal checkpoint.
+  // Il player lampeggia e i colpi vengono ignorati (takeDamage esce se isHurt).
+  giveSpawnGrace(ms) {
+    const p = this.player;
+    p.isHurt = true; // invulnerabile
+    p.setAlpha(0.5);
+    this.tweens.add({ targets: p, alpha: 1, duration: 180, yoyo: true, repeat: Math.floor(ms / 360) });
+    this.time.delayedCall(ms, () => {
+      if (p && p.active) {
+        p.isHurt = false;
+        p.setAlpha(1);
+      }
+    });
   }
 
   // Captain supera la bandierina: da adesso si rinasce qui (festeggia un attimo).

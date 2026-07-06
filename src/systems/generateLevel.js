@@ -85,6 +85,19 @@ export function generateLevel(words, enemyMix = [{ style: { color: 'pink' }, wei
 
   // Ogni nemico ha il SUO stile (dal mix). L'altezza dipende dallo stile.
   const styles = assignStyles(layoutWords.length, enemyMix);
+  // opts.firstStyle: forza lo stile del PRIMO nemico (es. il primo della foresta
+  // NON deve essere un viola corazzato, troppo difficile all'inizio). Faccio uno
+  // SCAMBIO con un nemico più avanti che ha già quello stile, così i conteggi
+  // totali del mix restano invariati (non "perdo" un viola per colpa del primo).
+  if (opts.firstStyle && styles.length && styles[0] !== opts.firstStyle) {
+    const swapIdx = styles.findIndex((st, i) => i > 0 && st === opts.firstStyle);
+    if (swapIdx > 0) {
+      styles[swapIdx] = styles[0];
+      styles[0] = opts.firstStyle;
+    } else {
+      styles[0] = opts.firstStyle; // nessuno da scambiare: sovrascrivo
+    }
+  }
 
   const addEnemyFloor = (x, w, style, patrol = 40) => {
     const half = (style.size || 40) / 2;
@@ -151,12 +164,24 @@ export function generateLevel(words, enemyMix = [{ style: { color: 'pink' }, wei
   const dropKind = opts.coconuts ? 'coconut' : opts.stones ? 'stone' : null;
   const droppers = [];
   if (dropKind) {
+    // Gli oggetti NON devono cadere sopra un nemico: altrimenti, quando provi a
+    // saltargli in testa, rischi di prendere una pietra/cocco. Sposto il dropper
+    // in un punto "libero" (lontano da ogni nemico).
+    const enemyXs = enemies.map((e) => e.x);
+    const farFromEnemies = (x) => !enemyXs.some((ex) => Math.abs(ex - x) < 95);
+    const PERIOD = 3800; // caduta più RADA di prima (cocchi + pietre)
     let d = 0;
     for (let dx = 440; dx < worldWidth - 260; dx += 480) {
       d++;
+      let px = dx;
+      let tries = 0;
+      while (!farFromEnemies(px) && tries < 8) {
+        px += 70;
+        tries++;
+      }
       // I cocchi partono dalla chioma (~70-114); le pietre dal soffitto (~52-72).
       const spawnY = dropKind === 'coconut' ? 70 + (d % 3) * 22 : 52 + (d % 3) * 10;
-      droppers.push({ x: dx, spawnY, kind: dropKind, period: 2000, phase: (d * 620) % 2000 });
+      droppers.push({ x: px, spawnY, kind: dropKind, period: PERIOD, phase: (d * 620) % PERIOD });
     }
   }
 

@@ -67,7 +67,6 @@
   { "thai": "ต้นไม้", "english": "tree", "romanization": "dtôn-máai", "icon": "🌳", "theme": "forest", "level": 6 },
   { "thai": "ดอกไม้", "english": "flower", "romanization": "dòk-máai", "icon": "🌸", "theme": "forest", "level": 6 },
   { "thai": "ใบไม้", "english": "leaf", "romanization": "bai-máai", "icon": "🍃", "theme": "forest", "level": 6 },
-  { "thai": "หญ้า", "english": "grass", "romanization": "yâa", "icon": "🌱", "theme": "forest", "level": 6 },
   { "thai": "เห็ด", "english": "mushroom", "romanization": "hèt", "icon": "🍄", "theme": "forest", "level": 6 },
   { "thai": "ไผ่", "english": "bamboo", "romanization": "phài", "icon": "🎋", "theme": "forest", "level": 6 },
   { "thai": "ผีเสื้อ", "english": "butterfly", "romanization": "phǐi-sʉ̂a", "icon": "🦋", "theme": "forest", "level": 6 },
@@ -75,7 +74,6 @@
   { "thai": "กบ", "english": "frog", "romanization": "gòp", "icon": "🐸", "theme": "forest", "level": 6 },
   { "thai": "แม่น้ำ", "english": "river", "romanization": "mâe-náam", "icon": "🏞️", "theme": "forest", "level": 6 },
   { "thai": "ภูเขา", "english": "mountain", "romanization": "phuu-kǎo", "icon": "⛰️", "theme": "forest", "level": 6 },
-  { "thai": "หิน", "english": "rock", "romanization": "hǐn", "icon": "🪨", "theme": "forest", "level": 6 },
 
   { "thai": "ปราสาท", "english": "castle", "romanization": "bpraa-sàat", "icon": "🏰", "theme": "castle", "level": 7 },
   { "thai": "ราชา", "english": "king", "romanization": "raa-chaa", "icon": "🤴", "theme": "castle", "level": 7 },

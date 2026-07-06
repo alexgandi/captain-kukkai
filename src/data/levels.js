@@ -76,11 +76,13 @@ export const LEVEL_CONFIG = {
     env: 'forest',
     coconuts: true, // abilita le noci di cocco che cadono
     rhinos: true, // rinoceronti che caricano da destra a sinistra (da saltare)
+    firstEnemy: YELLOW, // il PRIMO nemico è giallo (non viola corazzato: troppo forte)
+    // Meno viola corazzati (difficilissimi da battere, ne restano ~2), più gialli.
     enemyMix: [
-      { style: PURPLE, weight: 0.35 },
+      { style: YELLOW, weight: 0.3 },
       { style: RED_BIG, weight: 0.3 },
-      { style: YELLOW, weight: 0.2 },
-      { style: PINK, weight: 0.15 },
+      { style: PURPLE, weight: 0.2 },
+      { style: PINK, weight: 0.2 },
     ],
   },
   // Livello 7 — CASTELLO di pietra. Novità 1: PIETRE che cadono dal soffitto (come i
@@ -92,11 +94,12 @@ export const LEVEL_CONFIG = {
     env: 'castle',
     stones: true, // pietre che cadono dal soffitto
     lengthMult: 2, // castello LUNGO: il doppio degli altri (nemici ripetuti = ripasso)
+    // Meno viola (2 in meno, sostituiti da gialli): il castello era troppo difficile.
     enemyMix: [
-      { style: ARCHER, weight: 0.4 }, // 40% nuovi (arcieri verdi)
-      { style: PURPLE, weight: 0.25 },
-      { style: RED_BIG, weight: 0.2 },
-      { style: YELLOW, weight: 0.15 },
+      { style: ARCHER, weight: 0.4 }, // 40% arcieri verdi
+      { style: YELLOW, weight: 0.23 },
+      { style: RED_BIG, weight: 0.21 },
+      { style: PURPLE, weight: 0.16 },
     ],
   },
 };

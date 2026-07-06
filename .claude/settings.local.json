@@ -15,7 +15,13 @@
       "Bash(git init *)",
       "Bash(git add *)",
       "Bash(git -c user.name=alexgandi -c user.email=ale.gan90@gmail.com commit -q -m 'Captain & Teacher Kukkai — educational Phaser game *)",
-      "Bash(git branch *)"
+      "Bash(git branch *)",
+      "Bash(gh repo *)",
+      "Bash(gh api *)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('URL:', d.get\\('html_url','?'\\), '| status:', d.get\\('status','?'\\)\\)\")",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('URL:', d.get\\('html_url'\\)\\); print\\('branch:', d.get\\('source',{}\\).get\\('branch'\\), 'path:', d.get\\('source',{}\\).get\\('path'\\)\\); print\\('status:', d.get\\('status'\\)\\)\")",
+      "Bash(git -c user.name=alexgandi -c user.email=ale.gan90@gmail.com commit -q -m 'Balance: forest/castle fixes \\(green coconuts, slower drops, easier enemy mix, checkpoint grace\\) *)",
+      "Bash(git push *)"
     ]
   }
 }
