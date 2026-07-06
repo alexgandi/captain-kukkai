@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- viewport per il gioco: niente zoom con le dita (i tap sono comandi),
+         e usa tutta l'area utile anche sotto il "notch" del telefono -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#1a1a2e" />
+    <!-- Se aggiunto alla schermata Home, si comporta come un'app a schermo intero -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <meta name="apple-mobile-web-app-title" content="Captain Kukkai" />
+    <title>Captain &amp; Teacher Kukkai</title>
+    <style>
+      /* A tutto schermo, niente scroll/rimbalzo, niente selezione del testo:
+         così su cellulare il dito muove il personaggio e non "trascina" la pagina */
+      html, body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #1a1a2e;
+        font-family: sans-serif;
+        overscroll-behavior: none;
+        -webkit-user-select: none;
+        user-select: none;
+        touch-action: none;
+      }
+      body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      /* Phaser (Scale.FIT) centra e ridimensiona il canvas dentro questo contenitore */
+      #game {
+        width: 100%;
+        height: 100%;
+      }
+      #game canvas {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="game"></div>
+    <!-- Punto di ingresso: Vite carica questo modulo JS -->
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

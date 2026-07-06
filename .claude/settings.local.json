@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm --version)",
+      "Bash(npm install *)",
+      "Bash(npm run *)",
+      "mcp__ElevenLabs_Player__generate_tts",
+      "Bash(rm -f \"/Users/alessandrogandini/Captain's Adventure/public/audio/\"tts_*.mp3 && echo \"file di prova rimosso\")",
+      "Bash(mv \"tts_2026-07-05T12-06-35-090Z.mp3\" \"kukkai_intro_0.mp3\")",
+      "Bash(mv \"tts_2026-07-05T12-07-03-681Z.mp3\" \"kukkai_intro_1.mp3\")",
+      "Bash(mv \"tts_2026-07-05T12-07-04-422Z.mp3\" \"kukkai_intro_2.mp3\")",
+      "Bash(mv \"tts_2026-07-05T12-07-04-989Z.mp3\" \"kukkai_intro_3.mp3\")",
+      "Bash(mv \"tts_2026-07-05T12-07-05-876Z.mp3\" \"kukkai_intro_4.mp3\")",
+      "Bash(gh auth *)",
+      "Bash(git init *)",
+      "Bash(git add *)",
+      "Bash(git -c user.name=alexgandi -c user.email=ale.gan90@gmail.com commit -q -m 'Captain & Teacher Kukkai — educational Phaser game *)",
+      "Bash(git branch *)"
+    ]
+  }
+}
