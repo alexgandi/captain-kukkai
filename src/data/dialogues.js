@@ -7,8 +7,10 @@
 // ma lo Yaksha scappa con lei su un'astronave -> inseguimento nello SPAZIO (L8),
 // dove Captain sconfigge il boss e la libera davvero.
 //
-// NB VOCE: le battute nuove non hanno ancora l'MP3 (ElevenLabs) -> per ora
-// parla la voce sintetica; gli MP3 si registrano insieme più avanti.
+// VOCE: ogni battuta ha il suo MP3 in public/audio/ (voce vera, ElevenLabs).
+// Le chiavi sono generate in voiceLines.js dagli STESSI array qui sotto, quindi
+// se cambi il testo di una battuta va RIGENERATO il suo MP3 (altrimenti la voce
+// non combacia). "Kukkai" è inciso come "Cook Guy" per la pronuncia giusta.
 
 // IntroScene: Kukkai spiega la missione all'inizio del gioco.
 export const KUKKAI_INTRO = [

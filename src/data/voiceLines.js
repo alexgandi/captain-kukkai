@@ -6,7 +6,7 @@ import { KUKKAI_INTRO, KUKKAI_LEVEL_END } from './dialogues.js';
 // I file stanno in public/audio/<chiave>.mp3 e vengono caricati in BootScene.
 export const VOICE_LINES = [
   ...KUKKAI_INTRO.map((text, i) => ({ key: `kukkai_intro_${i}`, text })),
-  ...[1, 2, 3].flatMap((lvl) =>
+  ...[1, 2, 3, 4, 5, 6, 7, 8].flatMap((lvl) =>
     (KUKKAI_LEVEL_END[lvl] || []).map((text, i) => ({ key: `kukkai_l${lvl}_${i}`, text }))
   ),
 ];
