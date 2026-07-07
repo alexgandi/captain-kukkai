@@ -3,9 +3,17 @@ import Phaser from 'phaser';
 // TouchControls: pulsanti a schermo per giocare su TABLET/TELEFONO (niente tastiera).
 // Compare SOLO su dispositivi touch; su desktop non disegna nulla.
 //
-// Non "preme" tasti veri: scrive dei FLAG booleani in scene.touchState
-// ({ left, right, jump, sword, magic, shield, up, down, fire }) e sono le scene
-// (Player, AttackManager, scudo, SpaceScene) a leggerli insieme alla tastiera.
+// COME FUNZIONA (importante!): NON usa gli eventi pointerdown/pointerout dei
+// singoli pulsanti — su un telefono vero il pollice SCIVOLA di continuo e gli
+// eventi "out" rilasciano il pulsante mentre il bambino sta ancora premendo.
+// Invece fa POLLING A ZONE: a ogni frame guarda DOVE SONO le dita appoggiate
+// e accende i flag dei pulsanti che le contengono. Così:
+//  - tenere premuto funziona anche se il dito balla o esce di qualche pixel
+//  - si può SCIVOLARE da ◀ a ▶ senza staccare il dito (come un vero D-pad)
+//  - più dita insieme (muovi + salta + attacca) senza conflitti di eventi
+//
+// Scrive dei FLAG booleani in scene.touchState ({ left, right, jump, sword,
+// magic, shield, up, down, fire }) letti da Player/AttackManager/scudo/SpaceScene.
 export default class TouchControls {
   // È un dispositivo touch? (window.__forceTouch = true per provarli col mouse)
   static isTouchDevice() {
@@ -31,58 +39,77 @@ export default class TouchControls {
       shield: false,
       fire: false,
     };
+    this.buttons = [];
 
     if (!TouchControls.isTouchDevice()) return;
-    scene.input.addPointer(3); // fino a 4 dita insieme (muovi + salta + attacca)
+    scene.input.addPointer(3); // fino a 4 dita insieme
 
     const H = scene.scale.height;
     const W = scene.scale.width;
 
+    // Pulsanti GRANDI e staccati dai bordi (in basso ci sono la barra-gesti di
+    // iOS e gli angoli arrotondati dei telefoni: lì i tocchi si perdono).
     if (layout === 'platform') {
-      // Sinistra: frecce di movimento. Destra: salto + armi sbloccate.
-      this.addButton(56, H - 56, 34, '◀', 'left');
-      this.addButton(140, H - 56, 34, '▶', 'right');
-      this.addButton(W - 56, H - 56, 36, '⬆', 'jump', 0x2f6fed);
+      this.addButton(66, H - 70, 38, '◀', 'left');
+      this.addButton(168, H - 70, 38, '▶', 'right');
+      this.addButton(W - 66, H - 70, 42, '⬆', 'jump', 0x2f6fed);
       const level = opts.level || 1;
-      if (level >= 2) this.addButton(W - 140, H - 48, 26, '⚔️', 'sword', 0xb0392e);
-      if (level >= 3) this.addButton(W - 190, H - 104, 26, '✨', 'magic', 0x8e44c8);
-      if (level >= 4) this.addButton(W - 92, H - 128, 26, '🛡️', 'shield', 0x16a085);
+      if (level >= 2) this.addButton(W - 170, H - 58, 30, '⚔️', 'sword', 0xb0392e);
+      if (level >= 3) this.addButton(W - 188, H - 138, 28, '✨', 'magic', 0x8e44c8);
+      if (level >= 4) this.addButton(W - 78, H - 168, 28, '🛡️', 'shield', 0x16a085);
     } else {
       // Spazio: pad a rombo (4 direzioni) a sinistra + fuoco a destra.
-      this.addButton(96, H - 56, 30, '◀', 'left');
-      this.addButton(176, H - 56, 30, '▶', 'right');
-      this.addButton(136, H - 112, 30, '⬆', 'up');
-      this.addButton(136, H - 30, 26, '⬇', 'down');
-      this.addButton(W - 64, H - 64, 38, '💥', 'fire', 0xb0392e);
+      this.addButton(58, H - 110, 36, '◀', 'left');
+      this.addButton(180, H - 110, 36, '▶', 'right');
+      this.addButton(119, H - 172, 36, '⬆', 'up');
+      this.addButton(119, H - 52, 32, '⬇', 'down');
+      this.addButton(W - 70, H - 78, 44, '💥', 'fire', 0xb0392e);
     }
+
+    // Il POLLING gira a ogni frame della scena (prima dell'update del gioco).
+    this.updateHandler = () => this.poll(scene.input.manager.pointers);
+    scene.events.on('update', this.updateHandler);
+    scene.events.once('shutdown', () => scene.events.off('update', this.updateHandler));
   }
 
-  // Un pulsante rotondo semi-trasparente: premuto = flag true, rilasciato = false.
+  // Disegna un pulsante rotondo semi-trasparente e registra la sua ZONA di tocco.
   addButton(x, y, r, label, flag, color = 0x1a1a2e) {
     const scene = this.scene;
     const c = scene.add.container(x, y).setScrollFactor(0).setDepth(2500);
     const bg = scene.add.circle(0, 0, r, color, 0.38);
     bg.setStrokeStyle(2, 0xffffff, 0.55);
     const txt = scene.add
-      .text(0, 0, label, { fontSize: `${Math.round(r * 0.95)}px` })
+      .text(0, 0, label, { fontSize: `${Math.round(r * 0.9)}px` })
       .setOrigin(0.5)
       .setAlpha(0.95);
     c.add([bg, txt]);
 
-    // Area di tocco un po' PIÙ GRANDE del disegno: dita piccole ma imprecise.
-    c.setSize(r * 2.6, r * 2.6);
-    c.setInteractive(new Phaser.Geom.Circle(0, 0, r * 1.3), Phaser.Geom.Circle.Contains);
+    // Zona di tocco più GRANDE del disegno (dita piccole ma imprecise).
+    this.buttons.push({ x, y, r, hitR: r * 1.5, flag, bg, active: false });
+  }
 
-    const press = () => {
-      this.state[flag] = true;
-      bg.setAlpha(0.75);
-    };
-    const release = () => {
-      this.state[flag] = false;
-      bg.setAlpha(0.38);
-    };
-    c.on('pointerdown', press);
-    c.on('pointerup', release);
-    c.on('pointerout', release); // il dito scivola via dal pulsante = rilascio
+  // Ogni frame: quali pulsanti hanno un dito sopra? Un dito attiva il pulsante
+  // PIÙ VICINO tra quelli che lo contengono (mai due insieme per sbaglio).
+  poll(pointers) {
+    this.buttons.forEach((b) => (b.active = false));
+
+    for (const p of pointers) {
+      if (!p || !p.isDown) continue;
+      let best = null;
+      let bestD = Infinity;
+      for (const b of this.buttons) {
+        const d = Math.hypot(p.x - b.x, p.y - b.y);
+        if (d <= b.hitR && d < bestD) {
+          best = b;
+          bestD = d;
+        }
+      }
+      if (best) best.active = true;
+    }
+
+    this.buttons.forEach((b) => {
+      this.state[b.flag] = b.active;
+      b.bg.setAlpha(b.active ? 0.8 : 0.38);
+    });
   }
 }

@@ -101,6 +101,7 @@ export default class SpaceScene extends Phaser.Scene {
       .setOrigin(1, 0)
       .setScrollFactor(0)
       .setDepth(2000)
+      .setPadding(10) // area di tocco più grande (dita sul telefono)
       .setInteractive({ useHandCursor: true });
     pauseBtn.on('pointerdown', () => this.openPause());
     this.input.keyboard.on('keydown-P', () => this.openPause());

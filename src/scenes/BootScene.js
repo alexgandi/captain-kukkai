@@ -14,6 +14,28 @@ export default class BootScene extends Phaser.Scene {
   }
 
   preload() {
+    // BARRA DI CARICAMENTO: gli audio sono ~130 file — su telefono servono
+    // secondi, e senza barra il gioco sembra bloccato su uno schermo nero.
+    const W = this.scale.width;
+    const H = this.scale.height;
+    this.add
+      .text(W / 2, H / 2 - 40, 'Captain & Teacher Kukkai', {
+        fontFamily: 'sans-serif',
+        fontSize: '24px',
+        color: '#ffd166',
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5);
+    const barBg = this.add.rectangle(W / 2, H / 2 + 8, 320, 18, 0x1a1a2e).setStrokeStyle(2, 0xffd166);
+    const barFill = this.add.rectangle(W / 2 - 158, H / 2 + 8, 1, 12, 0x3fa34d).setOrigin(0, 0.5);
+    const label = this.add
+      .text(W / 2, H / 2 + 38, 'Loading... 0%', { fontFamily: 'sans-serif', fontSize: '14px', color: '#ffffff' })
+      .setOrigin(0.5);
+    this.load.on('progress', (p) => {
+      barFill.width = Math.max(1, 316 * p);
+      label.setText(`Loading... ${Math.round(p * 100)}%`);
+    });
+
     // >>> Quando avrai la vera grafica, caricala qui con le chiavi di TEXTURES:
     //   this.load.image(TEXTURES.captain, 'assets/captain.png');
     //   this.load.image(TEXTURES.enemy, 'assets/enemy.png');

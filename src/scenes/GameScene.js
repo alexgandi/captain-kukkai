@@ -305,16 +305,18 @@ export default class GameScene extends Phaser.Scene {
       .setOrigin(1, 0)
       .setScrollFactor(0)
       .setDepth(2000)
+      .setPadding(10) // area di tocco più grande (dita sul telefono)
       .setInteractive({ useHandCursor: true });
     bookBtn.on('pointerdown', () => this.openWordBook());
     this.input.keyboard.on('keydown-B', () => this.openWordBook());
 
     // --- Pulsante PAUSA (o tasto P): ferma tutto, riprendi o torna alla mappa ---
     const pauseBtn = this.add
-      .text(this.scale.width - 56, 20, '⏸️', { fontSize: '26px' })
+      .text(this.scale.width - 62, 20, '⏸️', { fontSize: '26px' })
       .setOrigin(1, 0)
       .setScrollFactor(0)
       .setDepth(2000)
+      .setPadding(10) // area di tocco più grande (dita sul telefono)
       .setInteractive({ useHandCursor: true });
     pauseBtn.on('pointerdown', () => this.openPause());
     this.input.keyboard.on('keydown-P', () => this.openPause());

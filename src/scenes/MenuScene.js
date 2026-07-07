@@ -67,6 +67,7 @@ export default class MenuScene extends Phaser.Scene {
       .text(W - 16, 14, '📖', { fontSize: '30px' })
       .setOrigin(1, 0)
       .setDepth(20)
+      .setPadding(10) // area di tocco più grande (dita sul telefono)
       .setInteractive({ useHandCursor: true });
     bookBtn.on('pointerdown', () => {
       if (this.sfx) this.sfx.click();
@@ -117,6 +118,13 @@ export default class MenuScene extends Phaser.Scene {
     const play = () => {
       if (started) return;
       started = true;
+      // SBLOCCO AUDIO (iPhone/iPad): gli AudioContext vanno creati/ripresi
+      // DENTRO un gesto dell'utente, altrimenti iOS li lascia muti.
+      // Questo click sul Play è il gesto giusto: sblocco effetti E musica qui.
+      if (this.sfx && this.sfx.ensureCtx) this.sfx.ensureCtx();
+      const music = this.registry.get('music');
+      if (music && music.ensureCtx) music.ensureCtx();
+      if (this.sound && this.sound.unlock) this.sound.unlock(); // anche l'audio di Phaser (MP3 voce)
       if (this.sfx) this.sfx.click();
       this.scene.start('IntroScene');
     };

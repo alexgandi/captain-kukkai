@@ -30,6 +30,10 @@
         -webkit-user-select: none;
         user-select: none;
         touch-action: none;
+        /* Niente flash blu al tocco né menu "copia/condividi" tenendo premuto:
+           su iPhone/Android i tocchi sono COMANDI di gioco, non gesti web. */
+        -webkit-tap-highlight-color: transparent;
+        -webkit-touch-callout: none;
       }
       body {
         display: flex;
