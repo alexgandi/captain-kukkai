@@ -301,8 +301,16 @@ export default class SpaceScene extends Phaser.Scene {
     this.bossHpFill = this.add.rectangle(GAME_WIDTH / 2 - 178, 74, 356, 12, 0xb0392e).setOrigin(0, 0.5).setScrollFactor(0).setDepth(2101);
     this.bossHpLabel = this.add.text(GAME_WIDTH / 2, 74, 'YAKSHA — free Kukkai!', { fontFamily: 'sans-serif', fontSize: '12px', color: '#ffe14d', fontStyle: 'bold' }).setOrigin(0.5).setScrollFactor(0).setDepth(2102);
 
-    // I laser di Captain colpiscono il boss (Phaser passa prima il membro di `lasers`).
-    this.physics.add.overlap(this.lasers, this.boss, (laser) => this.hitBoss(laser), null, this);
+    // I laser di Captain colpiscono il boss. NB: con overlap(gruppo, sprite) Phaser
+    // può passare gli argomenti in ordine (boss, laser) invece di (laser, boss) —
+    // quindi ricavo il laser come "quello che NON è il boss" (robusto all'ordine).
+    this.physics.add.overlap(
+      this.lasers,
+      this.boss,
+      (a, b) => this.hitBoss(a === this.boss ? b : a),
+      null,
+      this
+    );
 
     // La musica cambia: tema del BOSS, incalzante.
     if (this.music) this.music.play('boss');
