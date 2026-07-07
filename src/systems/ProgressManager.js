@@ -12,6 +12,7 @@ export default class ProgressManager {
     this.completedLevels = new Set();
     this.collectedWords = new Set(); // parole inglesi imparate in tutta la partita
     this.stars = {}; // { [livello]: 1..3 } — il MIGLIOR risultato ottenuto
+    this.mangoes = {}; // { [livello]: 0..3 } — manghi dorati trovati (best)
     this.load();
   }
 
@@ -24,6 +25,7 @@ export default class ProgressManager {
           levels: [...this.completedLevels],
           words: [...this.collectedWords],
           stars: this.stars,
+          mangoes: this.mangoes,
         })
       );
     } catch (e) {
@@ -39,6 +41,7 @@ export default class ProgressManager {
       (data.levels || []).forEach((l) => this.completedLevels.add(l));
       (data.words || []).forEach((w) => this.collectedWords.add(w));
       this.stars = data.stars || {};
+      this.mangoes = data.mangoes || {};
     } catch (e) {
       // Salvataggio corrotto: si riparte puliti.
     }
@@ -78,11 +81,22 @@ export default class ProgressManager {
     return this.stars[level] || 0;
   }
 
+  // --- Manghi dorati (0-3 per livello): si tiene il record migliore ---
+  setMangoes(level, count) {
+    this.mangoes[level] = Math.max(this.mangoes[level] || 0, count);
+    this.save();
+  }
+
+  getMangoes(level) {
+    return this.mangoes[level] || 0;
+  }
+
   // Ricomincia la partita da capo (usato dal "Play again" del finale).
   reset() {
     this.completedLevels.clear();
     this.collectedWords.clear();
     this.stars = {};
+    this.mangoes = {};
     try {
       localStorage.removeItem(STORAGE_KEY);
     } catch (e) {

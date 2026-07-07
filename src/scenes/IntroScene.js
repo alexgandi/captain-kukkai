@@ -30,13 +30,13 @@ export default class IntroScene extends Phaser.Scene {
     // Captain (immagine ferma) in piedi sul prato, rivolto a destra.
     this.add.image(150, floorTop - 30, TEXTURES.captain);
 
-    // Kukkai grande, sopra il pannello, per dare risalto al personaggio.
-    this.add.image(GAME_WIDTH - 190, floorTop - 110, TEXTURES.kukkaiPortrait).setScale(1.6);
+    // Kukkai grande, sopra il pannello — PREOCCUPATA: è stata rapita!
+    this.add.image(GAME_WIDTH - 190, floorTop - 110, 'kukkai_worried').setScale(1.6);
 
     // --- Dialogo ---
     this.audio = new AudioManager(this);
     this.dialogue = new DialoguePortrait(this, {
-      portraitKey: TEXTURES.kukkaiPortrait,
+      portraitKey: 'kukkai_worried',
       name: 'Teacher Kukkai',
       speak: true, // la voce inglese pronuncia le battute
       audio: this.audio,

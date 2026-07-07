@@ -72,7 +72,7 @@ export default class MapScene extends Phaser.Scene {
     if (!this.progress || !this.progress.isLevelDone(8)) {
       const ship = this.add.image(last.x + 26, last.y - 78, 'boss_ship').setScale(0.5).setDepth(5);
       this.tweens.add({ targets: ship, y: last.y - 86, duration: 1300, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-      const kukkai = this.add.image(last.x + 12, last.y - 46, TEXTURES.kukkaiPortrait).setScale(0.3).setDepth(5);
+      const kukkai = this.add.image(last.x + 12, last.y - 46, 'kukkai_scared').setScale(0.3).setDepth(5);
       this.tweens.add({ targets: kukkai, y: last.y - 52, duration: 1300, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
       this.add.text(last.x + 20, last.y - 112, 'Help!', { fontFamily: 'sans-serif', fontSize: '13px', color: '#ffe14d' }).setOrigin(0.5);
     }
@@ -106,11 +106,16 @@ export default class MapScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setDepth(2);
 
-    // Stelline guadagnate (per i livelli completati).
+    // Stelline guadagnate + manghi dorati trovati (per i livelli completati).
     if (done && this.progress) {
       const stars = this.progress.getStars(stop.level);
       const txt = '⭐'.repeat(stars) + '☆'.repeat(Math.max(0, 3 - stars));
       this.add.text(stop.x, stop.y + 56, txt, { fontSize: '11px' }).setOrigin(0.5).setDepth(2);
+      const m = this.progress.getMangoes(stop.level);
+      this.add
+        .text(stop.x, stop.y + 72, `🥭 ${m}/3`, { fontFamily: 'sans-serif', fontSize: '10px', color: m >= 3 ? '#ffd166' : '#c9d4dd' })
+        .setOrigin(0.5)
+        .setDepth(2);
     }
 
     // Tappa CORRENTE: anello pulsante + Captain in piedi sopra + tap per partire.

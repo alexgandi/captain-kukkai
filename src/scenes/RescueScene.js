@@ -88,7 +88,7 @@ export default class RescueScene extends Phaser.Scene {
     bg.fillStyle(0x2f6fed, 1);
     bg.fillRoundedRect(-130, -24, 260, 48, 12);
     const label = this.add
-      .text(0, 0, 'Play again  ↺   (Space)', {
+      .text(0, 0, 'Your diploma!  🎓   (Space)', {
         fontFamily: 'sans-serif',
         fontSize: '20px',
         color: '#ffffff',
@@ -100,17 +100,15 @@ export default class RescueScene extends Phaser.Scene {
     btn.setSize(260, 48);
     btn.setInteractive(new Phaser.Geom.Rectangle(-130, -24, 260, 48), Phaser.Geom.Rectangle.Contains);
     btn.input.cursor = 'pointer';
-    btn.on('pointerdown', () => this.playAgain());
-    this.input.keyboard.once('keydown-SPACE', () => this.playAgain());
-    this.input.keyboard.once('keydown-ENTER', () => this.playAgain());
+    btn.on('pointerdown', () => this.toDiploma());
+    this.input.keyboard.once('keydown-SPACE', () => this.toDiploma());
+    this.input.keyboard.once('keydown-ENTER', () => this.toDiploma());
   }
 
-  playAgain() {
+  // Dal finale al DIPLOMA (il reset del progresso avviene lì, con "Play again").
+  toDiploma() {
     const sfx = this.registry.get('sfx');
     if (sfx) sfx.click();
-    // Azzero il progresso e riparto dall'inizio (intro di Kukkai).
-    const progress = this.registry.get('progress');
-    if (progress) progress.reset();
-    this.scene.start('IntroScene');
+    this.scene.start('CertificateScene');
   }
 }

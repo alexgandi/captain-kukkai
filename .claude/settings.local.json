@@ -55,7 +55,8 @@
       "Bash(curl -s -o /dev/null -w \"una voce \\(intro_1\\) HTTP %{http_code} | %{size_download} bytes\\\\n\" \"https://alexgandi.github.io/captain-kukkai/audio/kukkai_intro_1.mp3?v=$\\(date +%s\\)\")",
       "Bash(curl -s -o /dev/null -w \"voce finale \\(l8_2\\) HTTP %{http_code} | %{size_download} bytes\\\\n\" \"https://alexgandi.github.io/captain-kukkai/audio/kukkai_l8_2.mp3?v=$\\(date +%s\\)\")",
       "Bash(node -e ' *)",
-      "Bash(bash -c ' *)"
+      "Bash(bash -c ' *)",
+      "Bash(grep -n \"import { KUKKAI\\\\|from '../data/dialogues\" src/scenes/GameScene.js src/scenes/SpaceScene.js)"
     ]
   }
 }

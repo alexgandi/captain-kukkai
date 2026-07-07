@@ -75,6 +75,19 @@ export default class MenuScene extends Phaser.Scene {
 
     // Pulsante Play.
     this.createPlayButton();
+
+    // Dedica: questo gioco è nato per un bambino vero. 💙
+    this.add
+      .text(W / 2, H - 10, 'Made with ❤️ for Captain', {
+        fontFamily: 'sans-serif',
+        fontSize: '13px',
+        color: '#ffffff',
+        stroke: '#1a1a2e',
+        strokeThickness: 3,
+      })
+      .setOrigin(0.5, 1)
+      .setDepth(20)
+      .setAlpha(0.95);
   }
 
   createPlayButton() {

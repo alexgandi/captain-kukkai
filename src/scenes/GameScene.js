@@ -9,6 +9,7 @@ import HeartsDisplay from '../ui/HeartsDisplay.js';
 import AttackManager from '../systems/AttackManager.js';
 import { generateLevel } from '../systems/generateLevel.js';
 import { LEVEL_CONFIG } from '../data/levels.js';
+import { KUKKAI_LEVEL_START } from '../data/dialogues.js';
 import TouchControls from '../ui/TouchControls.js';
 
 // GameScene: la scena di gioco.
@@ -214,6 +215,19 @@ export default class GameScene extends Phaser.Scene {
     // --- CONTROLLI TOUCH (tablet/telefono): pulsanti a schermo, solo su touch ---
     this.touchControls = new TouchControls(this, 'platform', { level: this.levelNumber });
 
+    // Kukkai annuncia il tema del livello (voce vera). Solo alla PRIMA partenza:
+    // dopo una morte/checkpoint sarebbe ripetitiva.
+    if (!this.fromCheckpoint && !this.hadDeath) {
+      this.time.delayedCall(500, () => this.audio.speak(KUKKAI_LEVEL_START[this.levelNumber]));
+    }
+
+    // --- LO YAKSHA TI SORVEGLIA (L5-7): ogni tanto la sua nave attraversa il
+    // cielo in lontananza (innocua). La caccia si sente anche mentre giochi.
+    if (this.levelNumber >= 5 && this.levelNumber <= 7) {
+      this.flybyCount = 0;
+      this.scheduleYakshaFlyby();
+    }
+
     // --- OSTACOLI (spine / fuoco): da evitare, toccarli fa "scottare" Captain ---
     this.buildHazards(level, floorTop);
 
@@ -225,6 +239,12 @@ export default class GameScene extends Phaser.Scene {
 
     // --- RINOCERONTI (Livello 6): caricano da destra a sinistra, da SALTARE ---
     this.buildRhinos(floorTop, cfg.rhinos);
+
+    // --- CUORE DI SOCCORSO: a metà livello, si raccoglie solo se hai perso cuori ---
+    this.buildRescueHeart(worldWidth, floorTop, level);
+
+    // --- 3 MANGHI DORATI nascosti (sopra piattaforme sparse): da esploratore! ---
+    this.buildMangoes(level);
 
     // --- TRAGUARDO: lo Spirit House (tempietto thai). ---
     // NASCOSTO all'inizio: compare solo quando hai sconfitto TUTTI i nemici
@@ -288,6 +308,16 @@ export default class GameScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true });
     bookBtn.on('pointerdown', () => this.openWordBook());
     this.input.keyboard.on('keydown-B', () => this.openWordBook());
+
+    // --- Pulsante PAUSA (o tasto P): ferma tutto, riprendi o torna alla mappa ---
+    const pauseBtn = this.add
+      .text(this.scale.width - 56, 20, '⏸️', { fontSize: '26px' })
+      .setOrigin(1, 0)
+      .setScrollFactor(0)
+      .setDepth(2000)
+      .setInteractive({ useHandCursor: true });
+    pauseBtn.on('pointerdown', () => this.openPause());
+    this.input.keyboard.on('keydown-P', () => this.openPause());
 
     // --- BANNER "nuova arma" all'inizio dei livelli che ne sbloccano una ---
     if (this.levelNumber === 2) {
@@ -654,6 +684,125 @@ export default class GameScene extends Phaser.Scene {
     g.lineStyle(2, 0xf2c14e, 1);
     g.strokeTriangle(x + 2, floorTop - 86, x + 40, floorTop - 74, x + 2, floorTop - 62);
     this.checkpointGfx = g;
+  }
+
+  // 3 MANGHI DORATI per livello, sopra piattaforme sparse (inizio/metà/fine):
+  // bisogna SALIRE e saltare per prenderli. Contati nell'HUD e salvati (record).
+  buildMangoes(level) {
+    this.mangoesCollected = 0;
+    const plats = (level.platforms || []).slice().sort((a, b) => a.x - b.x);
+    if (plats.length < 3) return; // (non succede: ogni livello ha molte piattaforme)
+
+    // HUD: contatore accanto ai cuori.
+    this.mangoHud = this.add
+      .text(120, 22, '🥭 0/3', { fontFamily: 'sans-serif', fontSize: '16px', color: '#ffd166', fontStyle: 'bold', stroke: '#1a1a2e', strokeThickness: 3 })
+      .setScrollFactor(0)
+      .setDepth(2000);
+
+    // Tre piattaforme sparse: inizio, metà, fine del livello.
+    const picks = [Math.floor(plats.length * 0.15), Math.floor(plats.length * 0.5), plats.length - 1];
+    new Set(picks).forEach((idx) => {
+      const p = plats[idx];
+      const x = p.x + p.w / 2 - 14; // sul bordo destro (lontano dal nemico al centro)
+      const y = p.y - p.h / 2 - 78; // in alto: si prende SALTANDO dalla piattaforma
+      const halo = this.add.circle(x, y, 16, 0xffd166, 0.28).setDepth(5);
+      const mango = this.add.text(x, y, '🥭', { fontSize: '24px' }).setOrigin(0.5).setDepth(6);
+      this.physics.add.existing(mango, true);
+      this.tweens.add({ targets: [mango, halo], y: y - 8, duration: 800, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+
+      this.physics.add.overlap(this.player, mango, () => {
+        if (!mango.active) return;
+        this.mangoesCollected += 1;
+        this.mangoHud.setText(`🥭 ${this.mangoesCollected}/3`);
+        if (this.sfx) this.sfx.click();
+        // Scintille dorate.
+        for (let i = 0; i < 6; i++) {
+          const s = this.add.star(mango.x, mango.y, 5, 3, 7, 0xffd166).setDepth(7);
+          const ang = ((Math.PI * 2) / 6) * i;
+          this.tweens.add({ targets: s, x: mango.x + Math.cos(ang) * 34, y: mango.y + Math.sin(ang) * 28, alpha: 0, scale: 0, duration: 400, ease: 'Cubic.easeOut', onComplete: () => s.destroy() });
+        }
+        mango.destroy();
+        halo.destroy();
+      });
+    });
+  }
+
+  // Programma il prossimo sorvolo dello Yaksha (ogni 15-30 secondi).
+  scheduleYakshaFlyby() {
+    this.time.delayedCall(15000 + Math.random() * 15000, () => {
+      this.yakshaFlyby();
+      this.scheduleYakshaFlyby();
+    });
+  }
+
+  // La nave dello Yaksha attraversa il cielo, scura e lontana (solo scenografia).
+  yakshaFlyby() {
+    if (this.completing || this.restarting) return;
+    this.flybyCount += 1;
+    const fromRight = this.flybyCount % 2 === 1;
+    const W = this.scale.width;
+    const y = 52 + (this.flybyCount % 3) * 16;
+    const ship = this.add
+      .image(fromRight ? W + 90 : -90, y, 'boss_ship')
+      .setScrollFactor(0) // "cielo": fissa rispetto alla camera, come fosse lontanissima
+      .setDepth(-6)
+      .setScale(0.45)
+      .setAlpha(0.55)
+      .setTint(0x2a2440);
+    ship.setFlipX(!fromRight); // la texture guarda a sinistra
+    this.tweens.add({
+      targets: ship,
+      x: fromRight ? -110 : W + 110,
+      y: y + 10,
+      duration: 7000,
+      ease: 'Sine.easeInOut',
+      onComplete: () => ship.destroy(),
+    });
+  }
+
+  // CUORE DI SOCCORSO: un ❤️ che fluttua a metà livello. Lo raccogli SOLO se
+  // hai perso dei cuori (se sei pieno resta lì, ci puoi tornare dopo).
+  buildRescueHeart(worldWidth, floorTop, level) {
+    // Punto libero (lontano dai nemici), poco oltre la metà del livello.
+    const enemyXs = level.enemies.map((e) => e.x);
+    let hx = Math.round(worldWidth * 0.55);
+    for (let off = 0; off <= 600; off += 40) {
+      if (!enemyXs.some((ex) => Math.abs(ex - (hx + off)) < 90)) {
+        hx = hx + off;
+        break;
+      }
+    }
+    // Non sovrapporlo alla bandierina del checkpoint (dove c'è).
+    if (this.checkpointX && Math.abs(hx - this.checkpointX) < 70) hx += 90;
+
+    const heart = this.add.text(hx, floorTop - 42, '❤️', { fontSize: '26px' }).setOrigin(0.5).setDepth(6);
+    this.physics.add.existing(heart, true);
+    // Fluttua su e giù per farsi notare.
+    this.tweens.add({ targets: heart, y: floorTop - 52, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+
+    this.physics.add.overlap(this.player, heart, () => {
+      if (!heart.active) return;
+      if (this.player.lives >= this.player.maxLives) return; // cuori pieni: resta lì
+      this.player.lives += 1;
+      this.hearts.set(this.player.lives);
+      if (this.sfx) this.sfx.win();
+      // Scintille di cura.
+      for (let i = 0; i < 6; i++) {
+        const s = this.add.star(heart.x, heart.y, 5, 3, 7, 0xff6b8a).setDepth(7);
+        const ang = ((Math.PI * 2) / 6) * i;
+        this.tweens.add({
+          targets: s,
+          x: heart.x + Math.cos(ang) * 36,
+          y: heart.y + Math.sin(ang) * 30,
+          alpha: 0,
+          scale: 0,
+          duration: 420,
+          ease: 'Cubic.easeOut',
+          onComplete: () => s.destroy(),
+        });
+      }
+      heart.destroy();
+    });
   }
 
   // Invulnerabilità temporanea (senza perdere vite): usata al respawn dal checkpoint.
@@ -1045,6 +1194,8 @@ export default class GameScene extends Phaser.Scene {
     // STELLE del livello: 1 = finito, +1 = senza mai morire, +1 = cuori pieni.
     this.earnedStars = 1 + (this.hadDeath ? 0 : 1) + (this.player.lives === this.player.maxLives ? 1 : 0);
     if (this.progress) this.progress.setStars(this.levelNumber, this.earnedStars);
+    // Manghi dorati trovati in questa corsa (si salva il record).
+    if (this.progress) this.progress.setMangoes(this.levelNumber, this.mangoesCollected || 0);
 
     // Al CASTELLO (L7) la storia si ferma un attimo: Kukkai era quasi salva,
     // ma lo Yaksha la rapisce sotto gli occhi di Captain -> cutscene!
@@ -1077,8 +1228,8 @@ export default class GameScene extends Phaser.Scene {
     const gx = this.goal.x;
     const groundY = this.floorTopY - 36;
 
-    // 1) Kukkai compare accanto al tempietto (quasi libera!).
-    const kukkai = this.add.image(gx - 56, groundY, TEXTURES.kukkaiPortrait).setScale(0.001).setDepth(20);
+    // 1) Kukkai compare accanto al tempietto (quasi libera... e già spaventata).
+    const kukkai = this.add.image(gx - 56, groundY, 'kukkai_scared').setScale(0.001).setDepth(20);
     this.tweens.add({ targets: kukkai, scale: 0.62, duration: 420, ease: 'Back.easeOut' });
 
     // 2) L'astronave dello Yaksha scende dall'alto.
@@ -1156,6 +1307,14 @@ export default class GameScene extends Phaser.Scene {
     if (this.sfx) this.sfx.click();
     this.scene.pause();
     this.scene.launch('WordBookScene', { returnTo: 'GameScene', resume: true });
+  }
+
+  // Apre il menu di PAUSA (overlay): riprendi o torna alla mappa.
+  openPause() {
+    if (this.completing || this.restarting) return;
+    if (this.sfx) this.sfx.click();
+    this.scene.pause();
+    this.scene.launch('PauseScene', { returnTo: 'GameScene', level: this.levelNumber });
   }
 
   update(time, delta) {

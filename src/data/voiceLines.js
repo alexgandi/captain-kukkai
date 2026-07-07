@@ -1,4 +1,4 @@
-import { KUKKAI_INTRO, KUKKAI_LEVEL_END } from './dialogues.js';
+import { KUKKAI_INTRO, KUKKAI_LEVEL_END, KUKKAI_LEVEL_START } from './dialogues.js';
 import vocabulary from './vocabulary.json';
 
 // Chiave-file sicura per una parola: minuscolo, non-alfanumerici -> "_".
@@ -16,6 +16,8 @@ export const VOICE_LINES = [
   ...[1, 2, 3, 4, 5, 6, 7, 8].flatMap((lvl) =>
     (KUKKAI_LEVEL_END[lvl] || []).map((text, i) => ({ key: `kukkai_l${lvl}_${i}`, text }))
   ),
+  // Annuncio del tema all'inizio di ogni livello.
+  ...[1, 2, 3, 4, 5, 6, 7, 8].map((lvl) => ({ key: `kukkai_start_${lvl}`, text: KUKKAI_LEVEL_START[lvl] })),
   // Le singole PAROLE del vocabolario (pronunciate imparandole / toccandole / nel quiz).
   ...vocabulary.map((w) => ({ key: wordKey(w.english), text: w.english })),
 ];

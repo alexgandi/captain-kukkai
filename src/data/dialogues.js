@@ -21,6 +21,18 @@ export const KUKKAI_INTRO = [
   'Follow my voice, Captain. Be brave!',
 ];
 
+// INIZIO di ogni livello: Kukkai annuncia il tema (solo voce, prepara l'orecchio).
+export const KUKKAI_LEVEL_START = {
+  1: 'Today we learn the animals!',
+  2: 'Today we learn about food!',
+  3: 'Today we learn the colors!',
+  4: 'Today we learn the numbers!',
+  5: 'Today we learn how people travel!',
+  6: 'Today we learn about nature!',
+  7: 'Today we learn castle words!',
+  8: 'Today we learn about space!',
+};
+
 // Fine di ogni livello: Kukkai incoraggia Captain (una riga per battuta).
 // Le parole citate sono ESEMPI (3-4), non tutta la lista: più naturale da dire.
 export const KUKKAI_LEVEL_END = {

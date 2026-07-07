@@ -598,7 +598,17 @@ function createCaptainFrame(scene, key, pose) {
 // Ritratto segnaposto di Teacher Kukkai: una maestra dal viso caldo e gentile.
 // Personaggio ORIGINALE (non basato su persone reali). 120x120, sostituibile.
 function createKukkaiPortraitTexture(scene) {
-  if (scene.textures.exists(TEXTURES.kukkaiPortrait)) return;
+  // TRE emozioni: felice (chiave storica), preoccupata, spaventata.
+  // La storia le usa: preoccupata quando avvista lo Yaksha, spaventata da
+  // prigioniera, felice all'inizio dei complimenti e al finale.
+  drawKukkaiPortrait(scene, TEXTURES.kukkaiPortrait, 'happy');
+  drawKukkaiPortrait(scene, 'kukkai_worried', 'worried');
+  drawKukkaiPortrait(scene, 'kukkai_scared', 'scared');
+}
+
+// Disegna il ritratto di Kukkai con l'espressione richiesta.
+function drawKukkaiPortrait(scene, key, mood) {
+  if (scene.textures.exists(key)) return;
 
   const g = scene.make.graphics({ add: false });
 
@@ -608,23 +618,54 @@ function createKukkaiPortraitTexture(scene) {
   // Viso.
   g.fillStyle(0xffd9b0, 1);
   g.fillCircle(60, 64, 40);
-  // Guance rosate (gentilezza).
-  g.fillStyle(0xff9e8a, 0.55);
+  // Guance rosate (gentilezza) — meno visibili quando è spaventata (pallida).
+  g.fillStyle(0xff9e8a, mood === 'scared' ? 0.25 : 0.55);
   g.fillCircle(40, 74, 8);
   g.fillCircle(80, 74, 8);
-  // Occhi.
+
+  // Occhi: più SBARRATI quando è spaventata.
+  const eyeR = mood === 'scared' ? 8.5 : 7;
+  const pupilR = mood === 'scared' ? 2.8 : 3.6;
   g.fillStyle(0xffffff, 1);
-  g.fillCircle(47, 60, 7);
-  g.fillCircle(73, 60, 7);
+  g.fillCircle(47, 60, eyeR);
+  g.fillCircle(73, 60, eyeR);
   g.fillStyle(0x33241a, 1);
-  g.fillCircle(47, 61, 3.6);
-  g.fillCircle(73, 61, 3.6);
-  // Sorriso caldo.
-  g.lineStyle(3, 0x8a4b2a, 1);
-  g.beginPath();
-  g.arc(60, 72, 16, 0.12 * Math.PI, 0.88 * Math.PI, false);
-  g.strokePath();
-  // Un fiore tra i capelli: tocco affettuoso da maestra.
+  g.fillCircle(47, 61, pupilR);
+  g.fillCircle(73, 61, pupilR);
+
+  // Sopracciglia: assenti da felice; INCLINATE (interno in su) da preoccupata/spaventata.
+  if (mood !== 'happy') {
+    const lift = mood === 'scared' ? 4 : 2; // spaventata = più alzate
+    g.lineStyle(2.6, 0x4a2f1a, 1);
+    g.beginPath();
+    g.moveTo(39, 52);
+    g.lineTo(53, 47 - lift);
+    g.strokePath();
+    g.beginPath();
+    g.moveTo(81, 52);
+    g.lineTo(67, 47 - lift);
+    g.strokePath();
+  }
+
+  // Bocca: sorriso / piega preoccupata / "O" di paura.
+  if (mood === 'happy') {
+    g.lineStyle(3, 0x8a4b2a, 1);
+    g.beginPath();
+    g.arc(60, 72, 16, 0.12 * Math.PI, 0.88 * Math.PI, false);
+    g.strokePath();
+  } else if (mood === 'worried') {
+    g.lineStyle(3, 0x8a4b2a, 1);
+    g.beginPath();
+    g.arc(60, 90, 10, 1.2 * Math.PI, 1.8 * Math.PI, false); // arco all'ingiù
+    g.strokePath();
+  } else {
+    g.fillStyle(0x5a3324, 1); // bocca aperta ("oh no!")
+    g.fillEllipse(60, 82, 13, 17);
+    g.fillStyle(0x8a4b3a, 1);
+    g.fillEllipse(60, 84, 8, 10);
+  }
+
+  // Un fiore tra i capelli: tocco affettuoso da maestra (sempre).
   g.fillStyle(0xffd166, 1);
   g.fillCircle(96, 34, 6);
   g.fillStyle(0xff7eb6, 1);
@@ -633,6 +674,6 @@ function createKukkaiPortraitTexture(scene) {
     g.fillCircle(96 + Math.cos(a) * 8, 34 + Math.sin(a) * 8, 4);
   }
 
-  g.generateTexture(TEXTURES.kukkaiPortrait, 120, 120);
+  g.generateTexture(key, 120, 120);
   g.destroy();
 }

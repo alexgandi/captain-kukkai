@@ -30,8 +30,15 @@ export default class LevelCompleteScene extends Phaser.Scene {
     this.drawThaiBackdrop();
 
     // Kukkai fa i complimenti; alla fine si scopre il recap.
+    // La sua ESPRESSIONE segue la storia: felice all'inizio, preoccupata da
+    // quando avvista la nave dello Yaksha (L3-6), spaventata al rapimento (L7),
+    // di nuovo felice dopo il salvataggio (L8).
+    const mood =
+      this.levelNumber === 7 ? 'kukkai_scared'
+      : this.levelNumber >= 3 && this.levelNumber <= 6 ? 'kukkai_worried'
+      : TEXTURES.kukkaiPortrait;
     this.dialogue = new DialoguePortrait(this, {
-      portraitKey: TEXTURES.kukkaiPortrait,
+      portraitKey: mood,
       name: 'Teacher Kukkai',
       speak: true,
       audio: this.audio,
@@ -107,6 +114,9 @@ export default class LevelCompleteScene extends Phaser.Scene {
     }
     this.quizFailedThisRound = false;
     const target = this.quizTargets[this.quizRound];
+    // Terzo round = LETTURA: vedi l'ICONA e scegli tra 3 parole SCRITTE
+    // (l'inverso dei primi due: introduce piano piano la lettura dell'inglese).
+    const readingMode = this.quizRound === 2;
 
     // Opzioni: la parola giusta + 2 "distrattori" dello stesso livello, mescolate.
     const others = Phaser.Utils.Array.Shuffle(this.words.filter((w) => w.english !== target.english)).slice(0, 2);
@@ -114,9 +124,11 @@ export default class LevelCompleteScene extends Phaser.Scene {
 
     this.quizPanel = this.add.container(GAME_WIDTH / 2, 235);
 
-    // La domanda: "Which one is ...?" + pulsante 🔊 per risentirla.
+    // La domanda. In lettura: icona grande + "Which word is this?";
+    // altrimenti: "Which one is ...?". Il 🔊 resta sempre come aiuto.
+    const qText = readingMode ? 'Which word is this?' : `Which one is "${target.english}"?`;
     const q = this.add
-      .text(-14, -105, `Which one is "${target.english}"?`, {
+      .text(-14, -105, qText, {
         fontFamily: 'sans-serif',
         fontSize: '22px',
         color: '#ffffff',
@@ -127,8 +139,13 @@ export default class LevelCompleteScene extends Phaser.Scene {
     speaker.setInteractive({ useHandCursor: true });
     speaker.on('pointerdown', () => this.audio.speak(target.english));
     this.quizPanel.add([q, speaker]);
+    if (readingMode) {
+      // L'icona da riconoscere, ben grande sotto la domanda.
+      const bigIcon = this.add.text(0, -62, target.icon || '⭐', { fontSize: '40px' }).setOrigin(0.5);
+      this.quizPanel.add(bigIcon);
+    }
 
-    // Le 3 tessere-icona.
+    // Le 3 tessere: icone (round 1-2) oppure parole scritte (round 3).
     options.forEach((word, i) => {
       const x = (i - 1) * 150;
       const tile = this.add.container(x, 10);
@@ -137,8 +154,22 @@ export default class LevelCompleteScene extends Phaser.Scene {
       bg.fillRoundedRect(-60, -55, 120, 110, 14);
       bg.lineStyle(4, 0xffd166, 1);
       bg.strokeRoundedRect(-60, -55, 120, 110, 14);
-      const icon = this.add.text(0, 0, word.icon || '⭐', { fontSize: '46px' }).setOrigin(0.5);
-      tile.add([bg, icon]);
+      let face;
+      if (readingMode) {
+        face = this.add
+          .text(0, 0, word.english, {
+            fontFamily: 'sans-serif',
+            fontSize: word.english.length > 8 ? '15px' : '20px',
+            color: '#2f6fed',
+            fontStyle: 'bold',
+            align: 'center',
+            wordWrap: { width: 108 },
+          })
+          .setOrigin(0.5);
+      } else {
+        face = this.add.text(0, 0, word.icon || '⭐', { fontSize: '46px' }).setOrigin(0.5);
+      }
+      tile.add([bg, face]);
       tile.setSize(120, 110);
       tile.setInteractive(new Phaser.Geom.Rectangle(-60, -55, 120, 110), Phaser.Geom.Rectangle.Contains);
       tile.input.cursor = 'pointer';
@@ -146,8 +177,8 @@ export default class LevelCompleteScene extends Phaser.Scene {
       this.quizPanel.add(tile);
     });
 
-    // Kukkai pronuncia la parola da trovare.
-    this.audio.speak(target.english);
+    // Kukkai pronuncia la parola da trovare (NON in lettura: lì devi leggere!).
+    if (!readingMode) this.audio.speak(target.english);
   }
 
   onQuizAnswer(tile, bg, word, target) {

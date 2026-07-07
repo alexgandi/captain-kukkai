@@ -9,6 +9,8 @@ import SpaceScene from './scenes/SpaceScene.js';
 import LevelCompleteScene from './scenes/LevelCompleteScene.js';
 import RescueScene from './scenes/RescueScene.js';
 import WordBookScene from './scenes/WordBookScene.js';
+import PauseScene from './scenes/PauseScene.js';
+import CertificateScene from './scenes/CertificateScene.js';
 
 // Questo è il punto d'ingresso del gioco.
 // Qui creiamo l'istanza di Phaser con la sua configurazione,
@@ -36,7 +38,7 @@ const config = {
   },
   // La lista delle scene. La PRIMA parte per prima: BootScene prepara gli asset,
   // poi IntroScene (Kukkai), poi GameScene. Man mano aggiungeremo MenuScene, ecc.
-  scene: [BootScene, MenuScene, IntroScene, MapScene, GameScene, SpaceScene, LevelCompleteScene, RescueScene, WordBookScene],
+  scene: [BootScene, MenuScene, IntroScene, MapScene, GameScene, SpaceScene, LevelCompleteScene, RescueScene, WordBookScene, PauseScene, CertificateScene],
 };
 
 // Avvia il gioco.
