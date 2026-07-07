@@ -53,7 +53,9 @@
       "Bash(mv -f \"tts_2026-07-06T16-04-28-054Z.mp3\" kukkai_l8_1.mp3)",
       "Bash(mv -f \"tts_2026-07-06T16-04-37-383Z.mp3\" kukkai_l8_2.mp3)",
       "Bash(curl -s -o /dev/null -w \"una voce \\(intro_1\\) HTTP %{http_code} | %{size_download} bytes\\\\n\" \"https://alexgandi.github.io/captain-kukkai/audio/kukkai_intro_1.mp3?v=$\\(date +%s\\)\")",
-      "Bash(curl -s -o /dev/null -w \"voce finale \\(l8_2\\) HTTP %{http_code} | %{size_download} bytes\\\\n\" \"https://alexgandi.github.io/captain-kukkai/audio/kukkai_l8_2.mp3?v=$\\(date +%s\\)\")"
+      "Bash(curl -s -o /dev/null -w \"voce finale \\(l8_2\\) HTTP %{http_code} | %{size_download} bytes\\\\n\" \"https://alexgandi.github.io/captain-kukkai/audio/kukkai_l8_2.mp3?v=$\\(date +%s\\)\")",
+      "Bash(node -e ' *)",
+      "Bash(bash -c ' *)"
     ]
   }
 }
