@@ -74,7 +74,11 @@
       "Bash(awk '{print $NF, $5}')",
       "Bash(curl -s -o /dev/null -w \"manifest: HTTP %{http_code}\\\\n\" http://localhost:5173/manifest.webmanifest)",
       "Bash(curl -s -o /dev/null -w \"sw.js: HTTP %{http_code}\\\\n\" http://localhost:5173/sw.js)",
-      "Bash(curl -s -o /dev/null -w \"icona: HTTP %{http_code}\\\\n\" http://localhost:5173/icons/icon-192.png)"
+      "Bash(curl -s -o /dev/null -w \"icona: HTTP %{http_code}\\\\n\" http://localhost:5173/icons/icon-192.png)",
+      "Bash(sips -g pixelWidth -g pixelHeight \"/Users/alessandrogandini/Downloads/ChatGPT Image Jul 8, 2026, 10_50_47 AM.png\")",
+      "Bash(sips -s format jpeg -s formatOptions 85 --resampleWidth 240 \"/Users/alessandrogandini/Downloads/ChatGPT Image Jul 8, 2026, 10_50_47 AM.png\" --out public/kukkai.jpg)",
+      "Bash(sips -g pixelWidth -g pixelHeight public/kukkai.jpg)",
+      "Bash(awk '{print \"peso:\", $5, \"bytes\"}')"
     ]
   }
 }

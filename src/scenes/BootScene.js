@@ -42,6 +42,11 @@ export default class BootScene extends Phaser.Scene {
     // Se una texture viene caricata qui, il segnaposto corrispondente non verrà
     // generato (vince la tua immagine).
 
+    // Il RITRATTO VERO di Kukkai (illustrazione): in create() viene ritagliato
+    // in un medaglione CIRCOLARE (i ritratti nel gioco "fluttuano": un rettangolo
+    // con lo sfondo stonerebbe). Se il file manca, resta il disegno generato.
+    this.load.image('kukkai_photo', 'kukkai.jpg');
+
     // Voce di Kukkai: gli MP3 registrati (in public/audio). Se un file manca,
     // il loader emette un errore ma continua, e l'AudioManager userà il fallback.
     VOICE_LINES.forEach((v) => this.load.audio(v.key, `audio/${v.key}.mp3`));
@@ -65,6 +70,34 @@ export default class BootScene extends Phaser.Scene {
   }
 
   create() {
+    // RITRATTO VERO DI KUKKAI: ritaglio la foto in un MEDAGLIONE circolare
+    // 120x120 (con bordino dorato) e la uso per tutte e tre le espressioni,
+    // così lo stile è coerente ovunque. Va fatto PRIMA dei segnaposto:
+    // se la texture esiste già, il disegno generato viene saltato.
+    if (this.textures.exists('kukkai_photo')) {
+      const src = this.textures.get('kukkai_photo').getSourceImage();
+      ['kukkai_portrait', 'kukkai_worried', 'kukkai_scared'].forEach((key) => {
+        if (this.textures.exists(key)) return;
+        const canvas = this.textures.createCanvas(key, 120, 120);
+        const ctx = canvas.getContext();
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(60, 60, 59, 0, Math.PI * 2);
+        ctx.closePath();
+        ctx.clip();
+        // "Cover": prendo il quadrato col viso dalla foto (240x300 -> fascia y 25..265).
+        ctx.drawImage(src, 0, 25, 240, 240, 0, 0, 120, 120);
+        ctx.restore();
+        // Bordo dorato sottile: il medaglione della maestra.
+        ctx.beginPath();
+        ctx.arc(60, 60, 57.5, 0, Math.PI * 2);
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#f2c14e';
+        ctx.stroke();
+        canvas.refresh();
+      });
+    }
+
     // Genera le texture segnaposto per ciò che non è stato caricato sopra.
     createPlaceholderTextures(this);
 
