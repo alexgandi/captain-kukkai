@@ -61,7 +61,11 @@ export default class MenuScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     // Captain e Kukkai sul prato (in basso, sotto il pulsante).
-    this.add.image(W / 2 - 150, H - 70, TEXTURES.captain).setScale(1.5);
+    // Se c'è la FOTO vera di Captain uso il suo medaglione, come per Kukkai.
+    const hasCapPhoto = this.textures.exists('captain_photo');
+    this.add
+      .image(W / 2 - 150, H - 74, hasCapPhoto ? 'captain_photo' : TEXTURES.captain)
+      .setScale(hasCapPhoto ? 0.9 : 1.5);
     this.add.image(W / 2 + 150, H - 74, TEXTURES.kukkaiPortrait).setScale(1.05);
 
     // Pulsantino Word Book (in alto a destra): rivedi le parole imparate.

@@ -23,9 +23,12 @@ export default class RescueScene extends Phaser.Scene {
     // Un sole/alone dietro Kukkai per dare risalto.
     this.add.circle(W / 2 + 60, H / 2 - 10, 90, 0xfff3b0, 0.7);
 
-    // Kukkai (libera e felice) + Captain accanto a lei.
+    // Kukkai (libera e felice) + Captain accanto a lei (il suo viso vero, se c'è).
     this.add.image(W / 2 + 60, H / 2 - 10, TEXTURES.kukkaiPortrait).setScale(1.7);
-    this.add.image(W / 2 - 90, H / 2 + 40, TEXTURES.captain).setScale(1.7);
+    const hasCapPhoto = this.textures.exists('captain_photo');
+    this.add
+      .image(W / 2 - 90, H / 2 + 30, hasCapPhoto ? 'captain_photo' : TEXTURES.captain)
+      .setScale(hasCapPhoto ? 1.25 : 1.7);
 
     // Messaggio del lieto fine (inglese + thai, mai italiano).
     this.add

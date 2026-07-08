@@ -42,10 +42,13 @@ export default class BootScene extends Phaser.Scene {
     // Se una texture viene caricata qui, il segnaposto corrispondente non verrà
     // generato (vince la tua immagine).
 
-    // Il RITRATTO VERO di Kukkai (illustrazione): in create() viene ritagliato
-    // in un medaglione CIRCOLARE (i ritratti nel gioco "fluttuano": un rettangolo
-    // con lo sfondo stonerebbe). Se il file manca, resta il disegno generato.
-    this.load.image('kukkai_photo', 'kukkai.jpg');
+    // I RITRATTI VERI (illustrazioni): in create() vengono ritagliati in
+    // medaglioni CIRCOLARI (i ritratti nel gioco "fluttuano": un rettangolo
+    // con lo sfondo stonerebbe). Se un file manca, resta il disegno generato.
+    this.load.image('kukkai_photo', 'kukkai.jpg'); //            felice
+    this.load.image('kukkai_photo_worried', 'kukkai_worried.jpg'); // preoccupata
+    this.load.image('kukkai_photo_scared', 'kukkai_scared.jpg'); //  spaventata
+    this.load.image('captain_photo_src', 'captain.jpg'); //         Captain!
 
     // Voce di Kukkai: gli MP3 registrati (in public/audio). Se un file manca,
     // il loader emette un errore ma continua, e l'AudioManager userà il fallback.
@@ -70,33 +73,39 @@ export default class BootScene extends Phaser.Scene {
   }
 
   create() {
-    // RITRATTO VERO DI KUKKAI: ritaglio la foto in un MEDAGLIONE circolare
-    // 120x120 (con bordino dorato) e la uso per tutte e tre le espressioni,
-    // così lo stile è coerente ovunque. Va fatto PRIMA dei segnaposto:
+    // RITRATTI VERI: ritaglio ogni foto in un MEDAGLIONE circolare 120x120
+    // (con bordino dorato). Ogni ESPRESSIONE di Kukkai usa la sua foto
+    // (felice/preoccupata/spaventata; se una manca, ripiega sulla felice),
+    // e anche CAPTAIN ha il suo medaglione. Va fatto PRIMA dei segnaposto:
     // se la texture esiste già, il disegno generato viene saltato.
-    if (this.textures.exists('kukkai_photo')) {
-      const src = this.textures.get('kukkai_photo').getSourceImage();
-      ['kukkai_portrait', 'kukkai_worried', 'kukkai_scared'].forEach((key) => {
-        if (this.textures.exists(key)) return;
-        const canvas = this.textures.createCanvas(key, 120, 120);
-        const ctx = canvas.getContext();
-        ctx.save();
-        ctx.beginPath();
-        ctx.arc(60, 60, 59, 0, Math.PI * 2);
-        ctx.closePath();
-        ctx.clip();
-        // "Cover": prendo il quadrato col viso dalla foto (240x300 -> fascia y 25..265).
-        ctx.drawImage(src, 0, 25, 240, 240, 0, 0, 120, 120);
-        ctx.restore();
-        // Bordo dorato sottile: il medaglione della maestra.
-        ctx.beginPath();
-        ctx.arc(60, 60, 57.5, 0, Math.PI * 2);
-        ctx.lineWidth = 3;
-        ctx.strokeStyle = '#f2c14e';
-        ctx.stroke();
-        canvas.refresh();
-      });
+    const makeMedallion = (destKey, srcKey) => {
+      if (this.textures.exists(destKey) || !this.textures.exists(srcKey)) return;
+      const src = this.textures.get(srcKey).getSourceImage();
+      const canvas = this.textures.createCanvas(destKey, 120, 120);
+      const ctx = canvas.getContext();
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(60, 60, 59, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.clip();
+      // "Cover": prendo il quadrato col viso dalla foto (240x300 -> fascia y 25..265).
+      ctx.drawImage(src, 0, 25, 240, 240, 0, 0, 120, 120);
+      ctx.restore();
+      // Bordo dorato sottile: lo stile "medaglione" del gioco.
+      ctx.beginPath();
+      ctx.arc(60, 60, 57.5, 0, Math.PI * 2);
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = '#f2c14e';
+      ctx.stroke();
+      canvas.refresh();
+    };
+    const happySrc = this.textures.exists('kukkai_photo') ? 'kukkai_photo' : null;
+    if (happySrc) {
+      makeMedallion('kukkai_portrait', 'kukkai_photo');
+      makeMedallion('kukkai_worried', this.textures.exists('kukkai_photo_worried') ? 'kukkai_photo_worried' : happySrc);
+      makeMedallion('kukkai_scared', this.textures.exists('kukkai_photo_scared') ? 'kukkai_photo_scared' : happySrc);
     }
+    makeMedallion('captain_photo', 'captain_photo_src'); // il viso vero di Captain
 
     // Genera le texture segnaposto per ciò che non è stato caricato sopra.
     createPlaceholderTextures(this);
