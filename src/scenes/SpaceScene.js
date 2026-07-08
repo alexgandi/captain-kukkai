@@ -6,6 +6,7 @@ import VocabularyCard from '../ui/VocabularyCard.js';
 import HeartsDisplay from '../ui/HeartsDisplay.js';
 import TouchControls from '../ui/TouchControls.js';
 import { KUKKAI_LEVEL_START } from '../data/dialogues.js';
+import { playFx } from '../systems/playFx.js';
 
 // SpaceScene = il livello finale (L8), un'altra "modalità": Captain NON corre più,
 // è dentro una NAVICELLA e vola libero. Niente gravità, niente salto. Spara LASER,
@@ -282,7 +283,7 @@ export default class SpaceScene extends Phaser.Scene {
       laser.setDepth(8);
       laser.bornX = this.ship.x;
     });
-    if (this.sfx) this.sfx.magic();
+    playFx(this, 'sfx_laserfx', 0.4, () => this.sfx && this.sfx.magic()); // pew! vero
   }
 
   // Un alieno spara un laser MIRATO verso Captain.
@@ -386,6 +387,8 @@ export default class SpaceScene extends Phaser.Scene {
     this.boss.baseY = by;
     this.bossMoveT = 0;
     this.bossAttackTimer = 1600;
+    this.bossEnraged = false; // FASE 2: sotto metà vita si INFURIA
+    this.bossShotToggle = false;
 
     // Kukkai prigioniera (spaventata) in un raggio traente sotto al boss.
     this.kukkaiBeam = this.add.circle(bx, by + 66, 22, 0x37e0ff, 0.25).setDepth(8);
@@ -411,8 +414,9 @@ export default class SpaceScene extends Phaser.Scene {
       this
     );
 
-    // La musica cambia: tema del BOSS, incalzante.
+    // La musica cambia: tema del BOSS, incalzante. E LUI ti sfida (voce vera!).
     if (this.music) this.music.play('boss');
+    this.time.delayedCall(700, () => playFx(this, 'yaksha_boss', 0.75));
 
     this.showBanner('BOSS! Free Kukkai — blast him!', 'บอส! ช่วยครูกุ๊กไก่ — ยิงมัน!');
   }
@@ -427,19 +431,47 @@ export default class SpaceScene extends Phaser.Scene {
     if (this.sfx) this.sfx.tink();
     // Aggiorno la barra della vita.
     this.bossHpFill.width = 356 * (this.bossHealth / this.bossMaxHealth);
+    // FASE 2: sotto metà vita lo Yaksha si INFURIA.
+    if (!this.bossEnraged && this.bossHealth > 0 && this.bossHealth <= this.bossMaxHealth / 2) {
+      this.enrageBoss();
+    }
     if (this.bossHealth <= 0) this.bossDefeated();
   }
 
-  // Il boss spara un VENTAGLIO di 3 laser verso Captain.
+  // Il boss si infuria: più veloce, più cattivo, spara anche a SPIRALE.
+  enrageBoss() {
+    this.bossEnraged = true;
+    this.boss.setTint(0xff9977); // arrossato di rabbia
+    this.cameras.main.shake(350, 0.012);
+    playFx(this, 'yaksha_laugh', 0.6);
+    this.bossAttackTimer = 900; // attacca subito
+    this.showBanner('The Yaksha is FURIOUS!', 'ยักษ์โกรธแล้ว! ระวัง!');
+  }
+
+  // Il boss spara: VENTAGLIO di 3 verso Captain; da infuriato, alterna il
+  // ventaglio (più veloce) a una SPIRALE di 8 colpi in tutte le direzioni.
   bossShoot() {
-    const base = Math.atan2(this.ship.y - this.boss.y, this.ship.x - this.boss.x);
-    [-0.28, 0, 0.28].forEach((off) => {
-      const shot = this.alienShots.create(this.boss.x - 50, this.boss.y, 'laser_alien');
-      shot.body.setAllowGravity(false);
-      shot.setVelocity(Math.cos(base + off) * 320, Math.sin(base + off) * 320);
-      shot.setRotation(base + off);
-      shot.setDepth(8);
-    });
+    const spiral = this.bossEnraged && (this.bossShotToggle = !this.bossShotToggle);
+    if (spiral) {
+      for (let i = 0; i < 8; i++) {
+        const ang = (Math.PI * 2 * i) / 8;
+        const shot = this.alienShots.create(this.boss.x - 20, this.boss.y, 'laser_alien');
+        shot.body.setAllowGravity(false);
+        shot.setVelocity(Math.cos(ang) * 260, Math.sin(ang) * 260);
+        shot.setRotation(ang);
+        shot.setDepth(8);
+      }
+    } else {
+      const base = Math.atan2(this.ship.y - this.boss.y, this.ship.x - this.boss.x);
+      const speed = this.bossEnraged ? 360 : 320;
+      [-0.28, 0, 0.28].forEach((off) => {
+        const shot = this.alienShots.create(this.boss.x - 50, this.boss.y, 'laser_alien');
+        shot.body.setAllowGravity(false);
+        shot.setVelocity(Math.cos(base + off) * speed, Math.sin(base + off) * speed);
+        shot.setRotation(base + off);
+        shot.setDepth(8);
+      });
+    }
     if (this.sfx) this.sfx.magic();
   }
 
@@ -450,6 +482,7 @@ export default class SpaceScene extends Phaser.Scene {
     if (this.progress) this.progress.markLevelDone(SPACE_LEVEL);
     if (this.sfx) this.sfx.win();
     if (this.music) this.music.play('celebration'); // vittoria!
+    playFx(this, 'yaksha_defeat', 0.75); // il cattivo si dispera!
 
     // STELLE: 1 = boss battuto, +1 = mai esploso, +1 = cuori pieni.
     this.earnedStars = 1 + (this.hadDeath ? 0 : 1) + (this.lives === MAX_LIVES ? 1 : 0);
@@ -564,15 +597,17 @@ export default class SpaceScene extends Phaser.Scene {
       }
     });
 
-    // --- BOSS: ondeggia su e giù e spara ventagli di laser ---
+    // --- BOSS: ondeggia su e giù e spara. Da INFURIATO è più rapido e ampio ---
     if (this.bossActive && this.boss && this.boss.active) {
       this.bossMoveT += delta;
-      this.boss.y = this.boss.baseY + Math.sin(this.bossMoveT / 700) * 90;
+      const amp = this.bossEnraged ? 130 : 90;
+      const freq = this.bossEnraged ? 500 : 700;
+      this.boss.y = this.boss.baseY + Math.sin(this.bossMoveT / freq) * amp;
       this.kukkaiBeam.y = this.boss.y + 66;
       this.kukkaiCaptive.y = this.boss.y + 66;
       this.bossAttackTimer -= delta;
       if (this.bossAttackTimer <= 0) {
-        this.bossAttackTimer = 1700 + Math.random() * 900;
+        this.bossAttackTimer = this.bossEnraged ? 1100 + Math.random() * 500 : 1700 + Math.random() * 900;
         this.bossShoot();
       }
     }

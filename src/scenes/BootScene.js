@@ -45,6 +45,23 @@ export default class BootScene extends Phaser.Scene {
     // Voce di Kukkai: gli MP3 registrati (in public/audio). Se un file manca,
     // il loader emette un errore ma continua, e l'AudioManager userà il fallback.
     VOICE_LINES.forEach((v) => this.load.audio(v.key, `audio/${v.key}.mp3`));
+
+    // Voce del CATTIVO (Yaksha), effetti sonori VERI e sigla del gioco.
+    // Anche qui: se un file manca, playFx usa il fallback sintetico.
+    [
+      'yaksha_laugh',
+      'yaksha_kidnap',
+      'yaksha_boss',
+      'yaksha_defeat',
+      'sfx_horn',
+      'sfx_thud',
+      'sfx_rhino',
+      'sfx_swordfx',
+      'sfx_magicfx',
+      'sfx_laserfx',
+      'sfx_stompfx',
+      'theme_song',
+    ].forEach((key) => this.load.audio(key, `audio/${key}.mp3`));
   }
 
   create() {

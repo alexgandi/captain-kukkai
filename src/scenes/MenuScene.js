@@ -1,5 +1,7 @@
 import Phaser from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT, COLORS, TEXTURES } from '../config.js';
+import VocabularyManager from '../systems/VocabularyManager.js';
+import AudioManager from '../systems/AudioManager.js';
 
 // MenuScene: la schermata titolo. Primo schermo del gioco.
 // Il pulsante Play è anche il primo GESTO dell'utente: sblocca l'audio del
@@ -76,6 +78,29 @@ export default class MenuScene extends Phaser.Scene {
 
     // Pulsante Play.
     this.createPlayButton();
+
+    // PAROLA DEL GIORNO: ogni giorno una parola diversa, toccala per sentirla.
+    // Piccolo rituale quotidiano di inglese, ancora prima di giocare.
+    const vocab = new VocabularyManager();
+    const dayIndex = Math.floor(Date.now() / 86400000) % vocab.all.length;
+    const wotd = vocab.all[dayIndex];
+    this.audio = new AudioManager(this);
+    const wotdBox = this.add.container(14, 14).setDepth(20);
+    const wbg = this.add.graphics();
+    wbg.fillStyle(0xffffff, 0.92);
+    wbg.fillRoundedRect(0, 0, 200, 58, 12);
+    wbg.lineStyle(3, 0xffd166, 1);
+    wbg.strokeRoundedRect(0, 0, 200, 58, 12);
+    const wtitle = this.add.text(12, 8, 'Word of the day  🔊', { fontFamily: 'sans-serif', fontSize: '12px', color: '#8a5a17', fontStyle: 'bold' });
+    const wword = this.add.text(12, 26, `${wotd.icon}  ${wotd.english}`, { fontFamily: 'sans-serif', fontSize: '20px', color: '#2f6fed', fontStyle: 'bold' });
+    wotdBox.add([wbg, wtitle, wword]);
+    wotdBox.setSize(200, 58);
+    wotdBox.setInteractive(new Phaser.Geom.Rectangle(0, 0, 200, 58), Phaser.Geom.Rectangle.Contains);
+    wotdBox.input.cursor = 'pointer';
+    wotdBox.on('pointerdown', () => {
+      this.audio.speak(wotd.english);
+      this.tweens.add({ targets: wotdBox, scale: 1.06, duration: 100, yoyo: true });
+    });
 
     // Dedica: questo gioco è nato per un bambino vero. 💙
     this.add

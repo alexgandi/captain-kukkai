@@ -84,6 +84,16 @@ export default class CertificateScene extends Phaser.Scene {
         color: '#5a4326',
       })
       .setOrigin(0.5);
+    // La data: il diploma diventa un ricordo vero da conservare.
+    const dateStr = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+    this.add
+      .text(W / 2, 236, `Completed on ${dateStr}`, {
+        fontFamily: 'Georgia, serif',
+        fontSize: '14px',
+        color: '#8a5a17',
+        fontStyle: 'italic',
+      })
+      .setOrigin(0.5);
 
     // I TIMBRI degli 8 livelli, con le stelline sotto (pop uno alla volta).
     const startX = W / 2 - 3.5 * 84;

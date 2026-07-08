@@ -11,6 +11,7 @@ import { generateLevel } from '../systems/generateLevel.js';
 import { LEVEL_CONFIG } from '../data/levels.js';
 import { KUKKAI_LEVEL_START } from '../data/dialogues.js';
 import TouchControls from '../ui/TouchControls.js';
+import { playFx } from '../systems/playFx.js';
 
 // GameScene: la scena di gioco.
 // STEP 7: livello lungo (letto dai dati) + camera che scorre e segue Captain.
@@ -55,6 +56,7 @@ export default class GameScene extends Phaser.Scene {
     const floorTop = GAME_HEIGHT - floorHeight;
 
     // TEMA dell'ambiente (giungla / ghiaccio / vulcano...). Dà identità al livello.
+    this.envKey = cfg.env;
     this.theme = THEMES[cfg.env] || THEMES.jungle;
     this.cameras.main.setBackgroundColor(this.theme.sky);
     // Musica del livello: un tema pentatonico per ambiente.
@@ -71,6 +73,9 @@ export default class GameScene extends Phaser.Scene {
 
     // Decorazioni di sfondo con parallasse (danno il senso dello scorrimento).
     this.addBackgroundDecor(worldWidth, floorTop);
+
+    // Lucciole di notte (sempre) + METEO a sorpresa nei REPLAY dei livelli finiti.
+    this.addWeatherAndDetails(worldWidth, floorTop);
 
     // --- SOLIDI: pavimento (tutta la larghezza) + piattaforme ---
     this.solids = [];
@@ -142,6 +147,11 @@ export default class GameScene extends Phaser.Scene {
     // Respawn dal checkpoint: qualche istante di INVULNERABILITÀ, così i nemici
     // lì attorno (e le loro magie/frecce) non ti colpiscono appena atterri.
     if (this.fromCheckpoint) this.giveSpawnGrace(2000);
+
+    // PREMIO 3/3 manghi: in questo livello Captain indossa il cappello thai dorato!
+    if (this.progress && this.progress.getMangoes(this.levelNumber) >= 3) {
+      this.goldHat = this.add.image(this.player.x, this.player.y - 38, 'gold_hat').setDepth(11);
+    }
 
     // --- NEMICI (dai dati, ognuno col SUO stile dal mix + mappato alla parola) ---
     this.enemyList = [];
@@ -465,6 +475,8 @@ export default class GameScene extends Phaser.Scene {
       t.setFlipX(false); // parte verso destra; la texture guarda già a destra
       // Rimbalzo verticale leggero: dà l'idea del motorino sconquassato.
       this.tweens.add({ targets: t, y: def.y - 3, duration: 140, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+      // Clacson: papapàaa ogni tanto, quando Captain è nei paraggi.
+      t.hornTimer = 2500 + Math.random() * 4000;
       this.vehicles.push(t);
     });
     // Toccare un tuk-tuk -> danno con contraccolpo (come un nemico, ma non si batte).
@@ -472,9 +484,15 @@ export default class GameScene extends Phaser.Scene {
   }
 
   // Aggiorna la corsa dei tuk-tuk: rimbalzano ai bordi del loro tratto e si girano.
-  patrolVehicles() {
+  patrolVehicles(delta = 16) {
     if (!this.vehicles) return;
     this.vehicles.forEach((t) => {
+      // Clacson quando Captain è vicino (suono vero, con ritmo casuale).
+      t.hornTimer -= delta;
+      if (t.hornTimer <= 0) {
+        t.hornTimer = 6000 + Math.random() * 5000;
+        if (Math.abs(t.x - this.player.x) < 480) playFx(this, 'sfx_horn', 0.4);
+      }
       if (t.dir === 1 && t.x >= t.maxX) {
         t.dir = -1;
         t.body.setVelocityX(-t.speed);
@@ -604,7 +622,7 @@ export default class GameScene extends Phaser.Scene {
     const y = obj.y + 6;
     const stone = obj.texture.key === 'stone';
     obj.destroy();
-    if (this.sfx) this.sfx.tink();
+    playFx(this, 'sfx_thud', 0.5, () => this.sfx && this.sfx.tink()); // tonfo vero
     // Splat: scheggie che schizzano e svaniscono (polvere grigia per la pietra,
     // acqua di cocco bianca + guscio per il cocco).
     for (let i = 0; i < 7; i++) {
@@ -666,7 +684,7 @@ export default class GameScene extends Phaser.Scene {
     r.body.setAllowGravity(false);
     r.setDepth(4);
     r.setVelocityX(-210); // carica veloce verso sinistra
-    if (this.sfx) this.sfx.tink(); // uno "sbuffo"
+    playFx(this, 'sfx_rhino', 0.55, () => this.sfx && this.sfx.tink()); // grugnito + carica
   }
 
   hitByRhino(player, rhino) {
@@ -741,6 +759,8 @@ export default class GameScene extends Phaser.Scene {
   yakshaFlyby() {
     if (this.completing || this.restarting) return;
     this.flybyCount += 1;
+    // Una risata malefica ogni due passaggi (non troppo insistente).
+    if (this.flybyCount % 2 === 1) playFx(this, 'yaksha_laugh', 0.35);
     const fromRight = this.flybyCount % 2 === 1;
     const W = this.scale.width;
     const y = 52 + (this.flybyCount % 3) * 16;
@@ -924,6 +944,62 @@ export default class GameScene extends Phaser.Scene {
     }
   }
 
+  // LUCCIOLE (notte, sempre) + METEO nei REPLAY: rigiocare un livello completato
+  // ha una sorpresa — pioggia, neve o braci. Ogni replay sembra nuovo.
+  addWeatherAndDetails(worldWidth, floorTop) {
+    // Lucciole nella notte: puntini caldi che vagano e pulsano vicino a terra.
+    if (this.theme.stars) {
+      for (let i = 0; i < 12; i++) {
+        const fx = 200 + ((i * 397) % (worldWidth - 400));
+        const fy = 260 + ((i * 61) % 120);
+        const fly = this.add.circle(fx, fy, 2.5, 0xffe98a, 0.9).setDepth(6);
+        this.tweens.add({ targets: fly, alpha: 0.15, duration: 600 + (i % 4) * 220, yoyo: true, repeat: -1 });
+        this.tweens.add({ targets: fly, x: fx + 26, y: fy - 16, duration: 1800 + (i % 5) * 350, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+      }
+    }
+
+    // Il meteo arriva solo quando RIGIOCHI un livello già completato.
+    const replay = this.progress && this.progress.isLevelDone(this.levelNumber);
+    if (!replay) return;
+    const cam = this.cameras.main;
+
+    if (this.envKey === 'jungle' || this.envKey === 'forest' || this.envKey === 'city') {
+      // PIOGGIA tropicale.
+      this.time.addEvent({
+        delay: 80,
+        loop: true,
+        callback: () => {
+          const x = cam.scrollX + Math.random() * this.scale.width;
+          const drop = this.add.rectangle(x, -8, 2, 12, 0x86c5ff, 0.55).setDepth(7);
+          this.tweens.add({ targets: drop, y: floorTop + 4, duration: 520, onComplete: () => drop.destroy() });
+        },
+      });
+    } else if (this.envKey === 'ice') {
+      // NEVICATA lenta.
+      this.time.addEvent({
+        delay: 180,
+        loop: true,
+        callback: () => {
+          const x = cam.scrollX + Math.random() * this.scale.width;
+          const flake = this.add.circle(x, -6, 2.2, 0xffffff, 0.9).setDepth(7);
+          this.tweens.add({ targets: flake, y: floorTop, duration: 3600 + Math.random() * 1200, onComplete: () => flake.destroy() });
+          this.tweens.add({ targets: flake, x: x + 34, duration: 900, yoyo: true, repeat: 3, ease: 'Sine.easeInOut' });
+        },
+      });
+    } else if (this.envKey === 'volcano') {
+      // BRACI che salgono dal suolo.
+      this.time.addEvent({
+        delay: 260,
+        loop: true,
+        callback: () => {
+          const x = cam.scrollX + Math.random() * this.scale.width;
+          const ember = this.add.circle(x, floorTop, 2, 0xff9a3d, 0.9).setDepth(7);
+          this.tweens.add({ targets: ember, y: floorTop - 120 - Math.random() * 100, alpha: 0, duration: 1800, onComplete: () => ember.destroy() });
+        },
+      });
+    }
+  }
+
   // Skyline di Bangkok: due file di grattacieli (lontani + vicini) con parallasse,
   // qualche finestra accesa. Tutto deterministico (niente casualità).
   addCityscape(worldWidth, floorTop) {
@@ -1079,6 +1155,7 @@ export default class GameScene extends Phaser.Scene {
 
     if (comingFromAbove && !enemy.spiked) {
       // Salto in testa (solo nemici SENZA spine in testa): colpo + rimbalzo.
+      playFx(this, 'sfx_stompfx', 0.5); // "boing" vero
       this.hitEnemy(enemy, 'stomp');
       pBody.setVelocityY(PLAYER.jumpVelocity * 0.6);
     } else {
@@ -1234,9 +1311,10 @@ export default class GameScene extends Phaser.Scene {
     const kukkai = this.add.image(gx - 56, groundY, 'kukkai_scared').setScale(0.001).setDepth(20);
     this.tweens.add({ targets: kukkai, scale: 0.62, duration: 420, ease: 'Back.easeOut' });
 
-    // 2) L'astronave dello Yaksha scende dall'alto.
+    // 2) L'astronave dello Yaksha scende dall'alto... e LUI PARLA (voce vera!).
     const ship = this.add.image(gx - 56, -80, 'boss_ship').setDepth(21);
     this.tweens.add({ targets: ship, y: 120, delay: 900, duration: 900, ease: 'Sine.easeInOut' });
+    this.time.delayedCall(1100, () => playFx(this, 'yaksha_kidnap', 0.7));
 
     // 3) Raggio traente + Kukkai risucchiata verso l'alto.
     this.time.delayedCall(2000, () => {
@@ -1323,6 +1401,8 @@ export default class GameScene extends Phaser.Scene {
     this.player.update(delta);
     this.attacks.update(delta);
     this.updateShield(delta);
+    // Il cappello dorato segue Captain (premio 3/3 manghi).
+    if (this.goldHat) this.goldHat.setPosition(this.player.x, this.player.y - 38);
     // Pattuglia + magia dei nemici ancora vivi.
     this.enemyList.forEach((enemy) => {
       if (!enemy.active) return;
@@ -1351,7 +1431,7 @@ export default class GameScene extends Phaser.Scene {
     });
     this.updateEnemyShots(delta);
     this.updateArrows(delta);
-    this.patrolVehicles();
+    this.patrolVehicles(delta);
     this.updateDroppers(delta);
     this.updateRhinos(delta);
 
@@ -1426,7 +1506,7 @@ export default class GameScene extends Phaser.Scene {
     shot.life = 2600;
     this.tweens.add({ targets: [shot, glow], angle: 360, duration: 600, repeat: -1 });
     this.enemyShots.push({ shot, glow });
-    if (this.sfx) this.sfx.magic();
+    playFx(this, 'sfx_magicfx', 0.25, () => this.sfx && this.sfx.magic());
   }
 
   // Muove i proiettili nemici; se colpiscono Captain fanno danno.

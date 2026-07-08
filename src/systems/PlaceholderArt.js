@@ -22,6 +22,7 @@ export function createPlaceholderTextures(scene) {
   createStoneTexture(scene); //                                                Livello 7 (cade dal soffitto)
   createArrowTexture(scene); //                                                Livello 7 (freccia dell'arciere)
   createShieldTexture(scene); //                                               Livello 4 (scudo anti-magia)
+  createGoldHatTexture(scene); //                                              premio 3/3 manghi (cappello thai)
   // Livello 8 (spazio): navicella di Captain, navicella aliena, laser, cometa.
   createShipTexture(scene);
   createAlienShipTexture(scene);
@@ -337,6 +338,24 @@ function createShieldTexture(scene) {
   g.fillCircle(13, 12, 3);
 
   g.generateTexture('shield_gfx', 26, 33);
+  g.destroy();
+}
+
+// Cappello thai dorato (ngob): PREMIO per chi trova 3/3 manghi in un livello.
+// Captain lo indossa in quel livello. Base 28x16, cono dorato con falda.
+function createGoldHatTexture(scene) {
+  if (scene.textures.exists('gold_hat')) return;
+  const g = scene.make.graphics({ add: false });
+  // Cono.
+  g.fillStyle(0xf2c14e, 1);
+  g.fillTriangle(3, 11, 14, 0, 25, 11);
+  // Riflesso.
+  g.fillStyle(0xffe08a, 1);
+  g.fillTriangle(10, 8, 14, 2, 15, 8);
+  // Falda.
+  g.fillStyle(0xc9a13b, 1);
+  g.fillRect(0, 11, 28, 4);
+  g.generateTexture('gold_hat', 28, 16);
   g.destroy();
 }
 

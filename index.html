@@ -14,6 +14,10 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <meta name="apple-mobile-web-app-title" content="Captain Kukkai" />
+    <!-- PWA: icona vera sulla Home + installabile come app -->
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" href="icons/icon-192.png" />
     <title>Captain &amp; Teacher Kukkai</title>
     <style>
       /* A tutto schermo, niente scroll/rimbalzo, niente selezione del testo:
@@ -54,5 +58,14 @@
     <div id="game"></div>
     <!-- Punto di ingresso: Vite carica questo modulo JS -->
     <script type="module" src="/src/main.js"></script>
+    <!-- OFFLINE: il service worker mette in cache il gioco alla prima visita,
+         così poi funziona anche senza internet (aereo, macchina, ovunque). -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./sw.js').catch(() => {});
+        });
+      }
+    </script>
   </body>
 </html>

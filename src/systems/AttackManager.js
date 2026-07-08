@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { TEXTURES, COLORS } from '../config.js';
+import { playFx } from './playFx.js';
 
 // AttackManager: possiede la lista degli attacchi SBLOCCATI (in base al livello)
 // e ne gestisce input, effetto e rilevamento colpo.
@@ -80,7 +81,7 @@ export default class AttackManager {
     this.swordCd = 350;
     this.swingTimer = 180;
     this.hitThisSwing.clear();
-    if (this.sfx) this.sfx.sword();
+    playFx(this.scene, 'sfx_swordfx', 0.5, () => this.sfx && this.sfx.sword()); // swish vero
 
     const dir = this.facing();
     this.slashSprite = this.scene.add
@@ -137,7 +138,7 @@ export default class AttackManager {
   // ---------------- MAGIC BLAST (proiettile stella) ----------------
   castMagic() {
     this.magicCd = 500;
-    if (this.sfx) this.sfx.magic();
+    playFx(this.scene, 'sfx_magicfx', 0.5, () => this.sfx && this.sfx.magic()); // scintillìo vero
     const dir = this.facing();
 
     // Una stella luminosa (NON un'arma realistica): tema magico, adatto ai bambini.

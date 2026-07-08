@@ -11,6 +11,8 @@ import RescueScene from './scenes/RescueScene.js';
 import WordBookScene from './scenes/WordBookScene.js';
 import PauseScene from './scenes/PauseScene.js';
 import CertificateScene from './scenes/CertificateScene.js';
+import MarketScene from './scenes/MarketScene.js';
+import QuizScene from './scenes/QuizScene.js';
 
 // Questo è il punto d'ingresso del gioco.
 // Qui creiamo l'istanza di Phaser con la sua configurazione,
@@ -38,10 +40,26 @@ const config = {
   },
   // La lista delle scene. La PRIMA parte per prima: BootScene prepara gli asset,
   // poi IntroScene (Kukkai), poi GameScene. Man mano aggiungeremo MenuScene, ecc.
-  scene: [BootScene, MenuScene, IntroScene, MapScene, GameScene, SpaceScene, LevelCompleteScene, RescueScene, WordBookScene, PauseScene, CertificateScene],
+  scene: [BootScene, MenuScene, IntroScene, MapScene, GameScene, SpaceScene, LevelCompleteScene, RescueScene, WordBookScene, PauseScene, CertificateScene, MarketScene, QuizScene],
 };
 
 // Avvia il gioco.
 // Lo salvo anche su window.game: comodo per ispezionarlo dalla console del browser
 // mentre impari (es. `game.scene.keys.GameScene`).
 window.game = new Phaser.Game(config);
+
+// AUDIO DOPO IL BLOCCO SCHERMO (telefono): quando blocchi/riapri il telefono o
+// cambi app, iOS/Android SOSPENDONO gli AudioContext — senza questo resume, al
+// ritorno il gioco resterebbe muto. Riattiviamo tutto appena la pagina torna visibile.
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) return;
+  const g = window.game;
+  if (!g || !g.registry) return;
+  const sfx = g.registry.get('sfx');
+  if (sfx && sfx.ensureCtx) sfx.ensureCtx();
+  const music = g.registry.get('music');
+  if (music && music.ensureCtx) music.ensureCtx();
+  if (g.sound && g.sound.context && g.sound.context.state === 'suspended') {
+    g.sound.context.resume();
+  }
+});

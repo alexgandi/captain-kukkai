@@ -31,8 +31,16 @@ export default class MapScene extends Phaser.Scene {
     const H = GAME_HEIGHT;
     this.progress = this.registry.get('progress');
     this.sfx = this.registry.get('sfx');
+    // Sulla mappa suona la SIGLA del gioco (ElevenLabs); fallback: tema quieto.
     const music = this.registry.get('music');
-    if (music) music.play('night'); // tema quieto da "pagina di atlante"
+    if (music) music.stop();
+    if (this.cache.audio.exists('theme_song')) {
+      this.themeSound = this.sound.add('theme_song', { loop: true, volume: 0.35 });
+      this.themeSound.play();
+      this.events.once('shutdown', () => this.themeSound && this.themeSound.stop());
+    } else if (music) {
+      music.play('night');
+    }
 
     // Sfondo: carta da mappa serale.
     this.cameras.main.setBackgroundColor(0x274156);
@@ -77,8 +85,49 @@ export default class MapScene extends Phaser.Scene {
       this.add.text(last.x + 20, last.y - 112, 'Help!', { fontFamily: 'sans-serif', fontSize: '13px', color: '#ffe14d' }).setOrigin(0.5);
     }
 
+    // La BANCARELLA del Mercato di Kukkai: si sblocca con TUTTI i 24 manghi.
+    this.createMarketStall();
+
     // Pulsante "Start!".
     this.createStartButton();
+  }
+
+  // Bancarella bonus in alto a sinistra: bloccata mostra i manghi mancanti,
+  // sbloccata pulsa e si può toccare per giocare al Mercato.
+  createMarketStall() {
+    const total = [1, 2, 3, 4, 5, 6, 7, 8].reduce((sum, l) => sum + (this.progress ? this.progress.getMangoes(l) : 0), 0);
+    const unlocked = total >= 24;
+
+    const stall = this.add.container(74, 130).setDepth(6);
+    const g = this.add.graphics();
+    // Tendina a strisce + bancone.
+    g.fillStyle(unlocked ? 0xb0392e : 0x5a6570, 1);
+    g.fillRect(-38, -26, 76, 12);
+    g.fillStyle(unlocked ? 0xfff3e0 : 0x8a93a0, 1);
+    for (let x = -38; x < 38; x += 19) g.fillTriangle(x, -14, x + 19, -14, x + 9.5, -4);
+    g.fillStyle(unlocked ? 0x9c6b3f : 0x4a5560, 1);
+    g.fillRect(-30, 2, 60, 16);
+    const icon = this.add.text(0, 8, unlocked ? '🥭' : '🔒', { fontSize: '18px' }).setOrigin(0.5);
+    const label = this.add
+      .text(0, 34, unlocked ? 'Market!' : `🥭 ${total}/24`, {
+        fontFamily: 'sans-serif',
+        fontSize: '12px',
+        color: unlocked ? '#ffd166' : '#aab6c2',
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5);
+    stall.add([g, icon, label]);
+
+    if (unlocked) {
+      this.tweens.add({ targets: stall, scale: 1.08, duration: 650, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+      stall.setSize(90, 70);
+      stall.setInteractive(new Phaser.Geom.Rectangle(-45, -35, 90, 70), Phaser.Geom.Rectangle.Contains);
+      stall.input.cursor = 'pointer';
+      stall.on('pointerdown', () => {
+        if (this.sfx) this.sfx.click();
+        this.scene.start('MarketScene', { next: this.nextLevel });
+      });
+    }
   }
 
   createStop(stop) {
@@ -127,7 +176,63 @@ export default class MapScene extends Phaser.Scene {
 
       circle.setInteractive({ useHandCursor: true });
       circle.on('pointerdown', () => this.startLevel());
+    } else if (done) {
+      // Tappa COMPLETATA: toccala per RIGIOCARLA o fare il QUIZ lampo.
+      circle.setInteractive({ useHandCursor: true });
+      circle.on('pointerdown', () => this.openStopMenu(stop));
     }
+  }
+
+  // Popup su una tappa completata: "Play again" (rigioca) o "Quiz" (ripasso lampo).
+  openStopMenu(stop) {
+    if (this.stopMenu) this.stopMenu.destroy();
+    if (this.sfx) this.sfx.click();
+    const W = GAME_WIDTH;
+    const H = GAME_HEIGHT;
+    const menu = (this.stopMenu = this.add.container(0, 0).setDepth(30));
+
+    const veil = this.add.rectangle(W / 2, H / 2, W, H, 0x101020, 0.6);
+    veil.setInteractive(); // blocca i tap sotto; tap sul velo = chiudi
+    veil.on('pointerdown', () => menu.destroy());
+
+    const panel = this.add.graphics();
+    panel.fillStyle(0x1c1030, 0.97);
+    panel.fillRoundedRect(W / 2 - 150, H / 2 - 92, 300, 184, 18);
+    panel.lineStyle(4, 0xffd166, 1);
+    panel.strokeRoundedRect(W / 2 - 150, H / 2 - 92, 300, 184, 18);
+    const title = this.add
+      .text(W / 2, H / 2 - 62, `${stop.icon}  Level ${stop.level}`, {
+        fontFamily: 'sans-serif',
+        fontSize: '22px',
+        color: '#ffd166',
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5);
+    menu.add([veil, panel, title]);
+
+    const mkBtn = (y, label, color, onClick) => {
+      const btn = this.add.container(W / 2, y);
+      const bg = this.add.graphics();
+      bg.fillStyle(color, 1);
+      bg.fillRoundedRect(-115, -20, 230, 40, 11);
+      const txt = this.add.text(0, 0, label, { fontFamily: 'sans-serif', fontSize: '18px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
+      btn.add([bg, txt]);
+      btn.setSize(230, 40);
+      btn.setInteractive(new Phaser.Geom.Rectangle(-115, -20, 230, 40), Phaser.Geom.Rectangle.Contains);
+      btn.input.cursor = 'pointer';
+      btn.on('pointerdown', () => {
+        if (this.sfx) this.sfx.click();
+        onClick();
+      });
+      menu.add(btn);
+    };
+    mkBtn(GAME_HEIGHT / 2 - 14, 'Play again  ▶', 0x2f6fed, () => {
+      if (stop.level === 8) this.scene.start('SpaceScene');
+      else this.scene.start('GameScene', { level: stop.level });
+    });
+    mkBtn(GAME_HEIGHT / 2 + 38, 'Quick Quiz  ⚡', 0x8e44c8, () => {
+      this.scene.start('QuizScene', { level: stop.level, next: this.nextLevel });
+    });
   }
 
   createStartButton() {
