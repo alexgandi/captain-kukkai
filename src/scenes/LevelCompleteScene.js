@@ -2,6 +2,8 @@ import Phaser from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT, COLORS, TEXTURES } from '../config.js';
 import AudioManager from '../systems/AudioManager.js';
 import VocabularyManager from '../systems/VocabularyManager.js';
+import QuizEngine from '../systems/QuizEngine.js';
+import { evaluateAchievements, showAchievementToasts } from '../systems/Achievements.js';
 import DialoguePortrait from '../ui/DialoguePortrait.js';
 import { KUKKAI_LEVEL_END } from '../data/dialogues.js';
 import { LEVEL_CONFIG, LEVEL_COUNT } from '../data/levels.js';
@@ -23,8 +25,14 @@ export default class LevelCompleteScene extends Phaser.Scene {
     // Musica spenta: qui parla Kukkai (la voce deve essere chiara).
     const music = this.registry.get('music');
     if (music) music.stop();
-    const vocab = new VocabularyManager();
-    this.words = vocab.getWordsForLevel(this.levelNumber);
+    this.vocab = new VocabularyManager();
+    this.words = this.vocab.getWordsForLevel(this.levelNumber);
+    this.progress = this.registry.get('progress');
+
+    // MEDAGLIE: a fine livello i progressi sono ormai salvati; controllo se
+    // Captain ne ha sbloccate di nuove e le annuncio con un toast dorato.
+    const newMedals = evaluateAchievements(this.progress, this.vocab.all.length);
+    if (newMedals.length) this.time.delayedCall(700, () => showAchievementToasts(this, newMedals));
 
     // Sfondo a tema thailandese: templi dorati al tramonto.
     this.drawThaiBackdrop();
@@ -72,18 +80,13 @@ export default class LevelCompleteScene extends Phaser.Scene {
   }
 
   // ---------------- QUIZ DI KUKKAI ----------------
-  // 3 domande: Kukkai PRONUNCIA una parola del livello, il bambino tocca
-  // l'icona giusta tra 3. Giusta = stellina; sbagliata = riprova gentile
-  // (nessun fallimento: si può ritentare finché non trova quella giusta).
+  // Il quiz vero e proprio è nel MOTORE condiviso (QuizEngine): più domande
+  // man mano che si sale di livello, tipi di sfida diversi (ascolto, lettura,
+  // abbinamento thai, intruso, conta, spelling), combo e ripasso mirato delle
+  // parole sbagliate. Qui la scena mette solo il titolo e raccoglie l'esito.
   startQuiz() {
     this.dialogue.hide();
-    this.quizRound = 0;
-    this.quizStars = 0;
-    this.quizFailedThisRound = false;
-    // 3 parole bersaglio a caso dal livello (senza ripetizioni).
-    this.quizTargets = Phaser.Utils.Array.Shuffle([...this.words]).slice(0, 3);
 
-    // Intestazione del quiz (inglese + thai).
     this.quizHeader = this.add.container(GAME_WIDTH / 2, 40);
     const title = this.add
       .text(0, 0, "⭐ Kukkai's Quiz! ⭐", {
@@ -94,129 +97,27 @@ export default class LevelCompleteScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
     const sub = this.add
-      .text(0, 28, 'แตะรูปที่ถูกต้อง!', { fontFamily: 'sans-serif', fontSize: '16px', color: '#ffffff' })
+      .text(0, 28, 'มาทำแบบทดสอบกัน!', { fontFamily: 'sans-serif', fontSize: '16px', color: '#ffffff' })
       .setOrigin(0.5);
     this.quizHeader.add([title, sub]);
 
-    // Le 3 stelline del punteggio (si accendono a ogni risposta giusta al primo colpo).
-    this.quizStarIcons = [0, 1, 2].map((i) =>
-      this.add.text(GAME_WIDTH / 2 - 40 + i * 40, 100, '☆', { fontSize: '26px', color: '#ffd166' }).setOrigin(0.5)
-    );
-
-    this.nextQuizRound();
-  }
-
-  nextQuizRound() {
-    if (this.quizPanel) this.quizPanel.destroy();
-    if (this.quizRound >= this.quizTargets.length) {
-      this.endQuiz();
-      return;
-    }
-    this.quizFailedThisRound = false;
-    const target = this.quizTargets[this.quizRound];
-    // Terzo round = LETTURA: vedi l'ICONA e scegli tra 3 parole SCRITTE
-    // (l'inverso dei primi due: introduce piano piano la lettura dell'inglese).
-    const readingMode = this.quizRound === 2;
-
-    // Opzioni: la parola giusta + 2 "distrattori" dello stesso livello, mescolate.
-    const others = Phaser.Utils.Array.Shuffle(this.words.filter((w) => w.english !== target.english)).slice(0, 2);
-    const options = Phaser.Utils.Array.Shuffle([target, ...others]);
-
-    this.quizPanel = this.add.container(GAME_WIDTH / 2, 235);
-
-    // La domanda. In lettura: icona grande + "Which word is this?";
-    // altrimenti: "Which one is ...?". Il 🔊 resta sempre come aiuto.
-    const qText = readingMode ? 'Which word is this?' : `Which one is "${target.english}"?`;
-    const q = this.add
-      .text(-14, -105, qText, {
-        fontFamily: 'sans-serif',
-        fontSize: '22px',
-        color: '#ffffff',
-        fontStyle: 'bold',
-      })
-      .setOrigin(0.5);
-    const speaker = this.add.text(q.width / 2 + 12, -105, '🔊', { fontSize: '24px' }).setOrigin(0.5);
-    speaker.setInteractive({ useHandCursor: true });
-    speaker.on('pointerdown', () => this.audio.speak(target.english));
-    this.quizPanel.add([q, speaker]);
-    if (readingMode) {
-      // L'icona da riconoscere, ben grande sotto la domanda.
-      const bigIcon = this.add.text(0, -62, target.icon || '⭐', { fontSize: '40px' }).setOrigin(0.5);
-      this.quizPanel.add(bigIcon);
-    }
-
-    // Le 3 tessere: icone (round 1-2) oppure parole scritte (round 3).
-    options.forEach((word, i) => {
-      const x = (i - 1) * 150;
-      const tile = this.add.container(x, 10);
-      const bg = this.add.graphics();
-      bg.fillStyle(0xffffff, 0.97);
-      bg.fillRoundedRect(-60, -55, 120, 110, 14);
-      bg.lineStyle(4, 0xffd166, 1);
-      bg.strokeRoundedRect(-60, -55, 120, 110, 14);
-      let face;
-      if (readingMode) {
-        face = this.add
-          .text(0, 0, word.english, {
-            fontFamily: 'sans-serif',
-            fontSize: word.english.length > 8 ? '15px' : '20px',
-            color: '#2f6fed',
-            fontStyle: 'bold',
-            align: 'center',
-            wordWrap: { width: 108 },
-          })
-          .setOrigin(0.5);
-      } else {
-        face = this.add.text(0, 0, word.icon || '⭐', { fontSize: '46px' }).setOrigin(0.5);
-      }
-      tile.add([bg, face]);
-      tile.setSize(120, 110);
-      tile.setInteractive(new Phaser.Geom.Rectangle(-60, -55, 120, 110), Phaser.Geom.Rectangle.Contains);
-      tile.input.cursor = 'pointer';
-      tile.on('pointerdown', () => this.onQuizAnswer(tile, bg, word, target));
-      this.quizPanel.add(tile);
+    this.quiz = new QuizEngine(this, {
+      words: this.words,
+      allWords: this.vocab.all,
+      level: this.levelNumber,
+      audio: this.audio,
+      yBase: 240,
+      starY: 100,
+      onComplete: (score, total) => this.endQuiz(score, total),
     });
-
-    // Kukkai pronuncia la parola da trovare (NON in lettura: lì devi leggere!).
-    if (!readingMode) this.audio.speak(target.english);
+    this.quiz.start();
   }
 
-  onQuizAnswer(tile, bg, word, target) {
-    const sfx = this.registry.get('sfx');
-    if (word.english === target.english) {
-      // GIUSTA: bordo verde, saltello, stellina se al primo colpo, poi round dopo.
-      if (sfx) sfx.win();
-      bg.lineStyle(5, 0x3fa34d, 1);
-      bg.strokeRoundedRect(-60, -55, 120, 110, 14);
-      this.tweens.add({ targets: tile, scale: 1.15, duration: 130, yoyo: true });
-      if (!this.quizFailedThisRound) {
-        this.quizStarIcons[this.quizRound].setText('⭐');
-        this.tweens.add({ targets: this.quizStarIcons[this.quizRound], scale: 1.5, duration: 160, yoyo: true });
-        this.quizStars += 1;
-      }
-      this.quizRound += 1;
-      this.time.delayedCall(650, () => this.nextQuizRound());
-    } else {
-      // SBAGLIATA: scossa gentile + "Try again!"; si può ritentare subito.
-      if (sfx) sfx.tink();
-      this.quizFailedThisRound = true;
-      this.tweens.add({ targets: tile, x: tile.x + 8, duration: 50, yoyo: true, repeat: 3 });
-      const oops = this.add
-        .text(GAME_WIDTH / 2, 372, 'Try again!  ลองอีกครั้ง!', {
-          fontFamily: 'sans-serif',
-          fontSize: '18px',
-          color: '#ffd166',
-        })
-        .setOrigin(0.5);
-      this.tweens.add({ targets: oops, alpha: 0, delay: 700, duration: 300, onComplete: () => oops.destroy() });
-    }
-  }
-
-  endQuiz() {
-    // Complimenti proporzionati alle stelline, poi si passa al recap.
+  endQuiz(score, total) {
+    // Complimenti proporzionati al punteggio, poi si passa al recap.
     const sfx = this.registry.get('sfx');
     if (sfx) sfx.win();
-    const msg = this.quizStars >= 3 ? 'Perfect! ⭐⭐⭐' : this.quizStars >= 1 ? 'Great job!' : 'Good practice!';
+    const msg = score >= total ? 'Perfect! ⭐' : score >= Math.ceil(total / 2) ? 'Great job!' : 'Good practice!';
     const done = this.add
       .text(GAME_WIDTH / 2, 235, msg, {
         fontFamily: 'sans-serif',
@@ -232,7 +133,7 @@ export default class LevelCompleteScene extends Phaser.Scene {
     this.time.delayedCall(1400, () => {
       done.destroy();
       if (this.quizHeader) this.quizHeader.destroy();
-      this.quizStarIcons.forEach((s) => s.destroy());
+      if (this.quiz) this.quiz.clear();
       this.revealRecap();
     });
   }

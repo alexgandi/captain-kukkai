@@ -13,6 +13,11 @@ import PauseScene from './scenes/PauseScene.js';
 import CertificateScene from './scenes/CertificateScene.js';
 import MarketScene from './scenes/MarketScene.js';
 import QuizScene from './scenes/QuizScene.js';
+import ActionScene from './scenes/ActionScene.js';
+import ParentScene from './scenes/ParentScene.js';
+import PhraseScene from './scenes/PhraseScene.js';
+import AchievementsScene from './scenes/AchievementsScene.js';
+import WardrobeScene from './scenes/WardrobeScene.js';
 
 // Questo è il punto d'ingresso del gioco.
 // Qui creiamo l'istanza di Phaser con la sua configurazione,
@@ -40,7 +45,7 @@ const config = {
   },
   // La lista delle scene. La PRIMA parte per prima: BootScene prepara gli asset,
   // poi IntroScene (Kukkai), poi GameScene. Man mano aggiungeremo MenuScene, ecc.
-  scene: [BootScene, MenuScene, IntroScene, MapScene, GameScene, SpaceScene, LevelCompleteScene, RescueScene, WordBookScene, PauseScene, CertificateScene, MarketScene, QuizScene],
+  scene: [BootScene, MenuScene, IntroScene, MapScene, GameScene, SpaceScene, LevelCompleteScene, RescueScene, WordBookScene, PauseScene, CertificateScene, MarketScene, QuizScene, ActionScene, ParentScene, PhraseScene, AchievementsScene, WardrobeScene],
 };
 
 // Avvia il gioco.

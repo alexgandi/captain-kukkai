@@ -80,6 +80,44 @@ export default class MenuScene extends Phaser.Scene {
       this.scene.start('WordBookScene', { returnTo: 'MenuScene', resume: false });
     });
 
+    // Pulsantino Medagliere (accanto al Word Book): vedi le medaglie sbloccate.
+    const medalBtn = this.add
+      .text(W - 62, 14, '🏅', { fontSize: '30px' })
+      .setOrigin(1, 0)
+      .setDepth(20)
+      .setPadding(10)
+      .setInteractive({ useHandCursor: true });
+    medalBtn.on('pointerdown', () => {
+      if (this.sfx) this.sfx.click();
+      this.scene.start('AchievementsScene', { returnTo: 'MenuScene' });
+    });
+
+    // Pulsantino Guardaroba: scegli il costume di Captain.
+    const wardrobeBtn = this.add
+      .text(W - 108, 14, '👕', { fontSize: '30px' })
+      .setOrigin(1, 0)
+      .setDepth(20)
+      .setPadding(10)
+      .setInteractive({ useHandCursor: true });
+    wardrobeBtn.on('pointerdown', () => {
+      if (this.sfx) this.sfx.click();
+      this.scene.start('WardrobeScene', { returnTo: 'MenuScene' });
+    });
+
+    // Pulsantino "For grown-ups" (in basso a destra, piccolo e defilato): apre la
+    // scheda dei progressi per i genitori, protetta da un cancello matematico.
+    const parentBtn = this.add
+      .text(W - 12, H - 12, '👨‍👩‍👧 For grown-ups', { fontFamily: 'sans-serif', fontSize: '13px', color: '#ffffff', stroke: '#1a1a2e', strokeThickness: 3 })
+      .setOrigin(1, 1)
+      .setDepth(20)
+      .setPadding(8)
+      .setAlpha(0.9)
+      .setInteractive({ useHandCursor: true });
+    parentBtn.on('pointerdown', () => {
+      if (this.sfx) this.sfx.click();
+      this.scene.start('ParentScene');
+    });
+
     // Pulsante Play.
     this.createPlayButton();
 

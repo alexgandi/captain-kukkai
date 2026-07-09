@@ -12,6 +12,7 @@ import { LEVEL_CONFIG } from '../data/levels.js';
 import { KUKKAI_LEVEL_START } from '../data/dialogues.js';
 import TouchControls from '../ui/TouchControls.js';
 import { playFx } from '../systems/playFx.js';
+import { getCostume } from '../data/costumes.js';
 
 // GameScene: la scena di gioco.
 // STEP 7: livello lungo (letto dai dati) + camera che scorre e segue Captain.
@@ -153,6 +154,26 @@ export default class GameScene extends Phaser.Scene {
       this.goldHat = this.add.image(this.player.x, this.player.y - 38, 'gold_hat').setDepth(11);
     }
 
+    // COMPAGNO: un elefantino che segue Captain e CRESCE con le parole imparate.
+    // Cucciolo all'inizio, giovane a 30 parole, adulto a 60: un premio visibile
+    // che accompagna i progressi del bambino di livello in livello.
+    if (this.progress) {
+      const learned = this.progress.getCollectedWords().length;
+      this.petScale = learned >= 60 ? 1.35 : learned >= 30 ? 1.0 : 0.62;
+      this.pet = this.add
+        .image(this.player.x - 44, this.player.y + 6, 'elephant_pet')
+        .setScale(this.petScale)
+        .setDepth(9);
+    }
+
+    // COSTUME scelto nel Guardaroba: un cappellino (emoji) sopra la testa di
+    // Captain, che lo segue mentre gioca. 'none' = nessun accessorio extra.
+    const costumeId = this.progress ? this.progress.getCostume() : 'none';
+    const costume = getCostume(costumeId);
+    if (costume && costume.emoji) {
+      this.costumeHat = this.add.text(this.player.x, this.player.y - 40, costume.emoji, { fontSize: '26px' }).setOrigin(0.5).setDepth(12);
+    }
+
     // --- NEMICI (dai dati, ognuno col SUO stile dal mix + mappato alla parola) ---
     this.enemyList = [];
     level.enemies.forEach((def) => {
@@ -195,6 +216,12 @@ export default class GameScene extends Phaser.Scene {
       }
       this.enemyList.push(enemy);
     });
+
+    // MINI-BOSS del castello (Livello 7): un GUARDIANO sbarra il passaggio a metà
+    // livello con un cancello di pietra. Si abbatte solo con la MAGIA (3 colpi):
+    // aggiunto PRIMA dell'overlap e dell'AttackManager così è colpibile come gli altri.
+    if (this.levelNumber === 7 && this.checkpointX) this.spawnCastleGuardian(this.checkpointX, floorTop);
+
     // Un solo overlap per tutti i nemici: handleStomp riceve quello colpito.
     this.physics.add.overlap(this.player, this.enemyList, this.handleStomp, null, this);
 
@@ -1165,6 +1192,92 @@ export default class GameScene extends Phaser.Scene {
     }
   }
 
+  // Crea il GUARDIANO del castello + il cancello che blocca la strada.
+  spawnCastleGuardian(cx, floorTop) {
+    const gx = cx + 90;
+    // Guardiano: grande, rosso, spinato (solo la magia lo doma), 3 colpi.
+    const guard = new Enemy(this, gx, floorTop - 56, { color: 'red', spiked: true, hits: 3 });
+    guard.setScale(1.5);
+    guard.setDepth(4);
+    guard.isGuardian = true;
+    guard.setPatrol(gx - 46, gx + 22, 55);
+    this.enemyList.push(guard);
+    this.guardian = guard;
+    // Overlap dedicato: toccarlo fa male (le spine), e garantisce il contatto
+    // anche se aggiunto dopo l'overlap di gruppo.
+    this.physics.add.overlap(this.player, guard, this.handleStomp, null, this);
+
+    // CANCELLO di pietra: sbarra il passaggio finché il guardiano è in piedi.
+    const gate = this.add.rectangle(gx + 48, floorTop - 62, 26, 142, 0x5a4a52).setDepth(3);
+    gate.setStrokeStyle(3, 0x372c33);
+    this.physics.add.existing(gate, true);
+    this.guardianGate = gate;
+    this.guardianGateCollider = this.physics.add.collider(this.player, gate);
+
+    // Barra della vita del guardiano (sopra la sua testa).
+    this.guardianBarBg = this.add.rectangle(gx, floorTop - 118, 70, 9, 0x1a1a2e).setDepth(6);
+    this.guardianBar = this.add.rectangle(gx - 33, floorTop - 118, 66, 5, 0xe23b3b).setOrigin(0, 0.5).setDepth(7);
+    this.guardianAnnounced = false;
+  }
+
+  // Avviso una tantum quando Captain si avvicina al guardiano.
+  announceGuardian() {
+    const cx = this.scale.width / 2;
+    const en = this.add
+      .text(cx, 118, 'A Guardian blocks the path! Use your magic! ✨', {
+        fontFamily: 'sans-serif',
+        fontSize: '20px',
+        color: '#ffffff',
+        fontStyle: 'bold',
+        stroke: '#1a1a2e',
+        strokeThickness: 5,
+      })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(3000);
+    const th = this.add
+      .text(cx, 148, 'ผู้พิทักษ์ขวางทางอยู่! ใช้เวทมนตร์!', { fontFamily: 'sans-serif', fontSize: '15px', color: '#ffe14d', stroke: '#1a1a2e', strokeThickness: 3 })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(3000);
+    playFx(this, 'yaksha_laugh', 0.4);
+    this.tweens.add({ targets: [en, th], alpha: 0, delay: 2600, duration: 500, onComplete: () => { en.destroy(); th.destroy(); } });
+  }
+
+  // Guardiano sconfitto: si apre il cancello, banner di vittoria.
+  onGuardianDefeated() {
+    if (this.guardianGate) {
+      const gate = this.guardianGate;
+      this.guardianGate = null;
+      if (this.guardianGateCollider) { this.guardianGateCollider.destroy(); this.guardianGateCollider = null; }
+      this.tweens.add({ targets: gate, alpha: 0, y: gate.y + 50, duration: 480, ease: 'Quad.easeIn', onComplete: () => gate.destroy() });
+    }
+    if (this.guardianBar) { this.guardianBar.destroy(); this.guardianBar = null; }
+    if (this.guardianBarBg) { this.guardianBarBg.destroy(); this.guardianBarBg = null; }
+    this.guardian = null;
+
+    const cx = this.scale.width / 2;
+    const en = this.add
+      .text(cx, 120, 'Guardian defeated! The way is open! 🛡️', {
+        fontFamily: 'sans-serif',
+        fontSize: '22px',
+        color: '#ffd166',
+        fontStyle: 'bold',
+        stroke: '#1a1a2e',
+        strokeThickness: 5,
+      })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(3000);
+    const th = this.add
+      .text(cx, 150, 'เอาชนะผู้พิทักษ์ได้แล้ว!', { fontFamily: 'sans-serif', fontSize: '15px', color: '#ffffff', stroke: '#1a1a2e', strokeThickness: 3 })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(3000);
+    if (this.sfx) this.sfx.win();
+    this.tweens.add({ targets: [en, th], alpha: 0, delay: 2200, duration: 500, onComplete: () => { en.destroy(); th.destroy(); } });
+  }
+
   // Colpisce un nemico. `source` = 'stomp' | 'weapon'.
   // Riduce la vita; solo quando arriva a 0 fa pop + parola imparata.
   hitEnemy(enemy, source = 'weapon') {
@@ -1189,6 +1302,12 @@ export default class GameScene extends Phaser.Scene {
     if (enemy.iconBubble) enemy.iconBubble.destroy(); // via la bollicina-icona
     enemy.defeat();
     if (this.sfx) this.sfx.defeat();
+
+    // Il GUARDIANO non insegna una parola: apre il cancello e basta.
+    if (enemy.isGuardian) {
+      this.onGuardianDefeated();
+      return;
+    }
 
     if (word) {
       this.vocab.collect(word.english);
@@ -1403,6 +1522,33 @@ export default class GameScene extends Phaser.Scene {
     this.updateShield(delta);
     // Il cappello dorato segue Captain (premio 3/3 manghi).
     if (this.goldHat) this.goldHat.setPosition(this.player.x, this.player.y - 38);
+    // Il costume scelto (cappellino) segue Captain — sopra il cappello dorato.
+    if (this.costumeHat) this.costumeHat.setPosition(this.player.x, this.player.y - (this.goldHat ? 54 : 40));
+    // GUARDIANO del castello: barra della vita che lo segue + avviso di prossimità.
+    if (this.guardian && this.guardian.active) {
+      const g = this.guardian;
+      if (this.guardianBarBg) this.guardianBarBg.setPosition(g.x, g.y - 62);
+      if (this.guardianBar) {
+        this.guardianBar.setPosition(g.x - 33, g.y - 62);
+        this.guardianBar.width = 66 * Math.max(0, g.health / g.maxHealth);
+      }
+      if (!this.guardianAnnounced && Math.abs(this.player.x - g.x) < 230) {
+        this.guardianAnnounced = true;
+        this.announceGuardian();
+      }
+    }
+    // L'elefantino trotta DIETRO a Captain (dal lato opposto a dove guarda),
+    // con un piccolo saltello quando si corre: un compagno vivo, non un adesivo.
+    if (this.pet) {
+      const behind = this.player.flipX ? 44 : -44;
+      const tx = this.player.x + behind;
+      const ty = this.player.y + 8;
+      this.pet.x += (tx - this.pet.x) * 0.08;
+      this.pet.y += (ty - this.pet.y) * 0.12;
+      this.pet.flipX = this.player.flipX; // guarda nella stessa direzione di Captain
+      const moving = this.player.body && Math.abs(this.player.body.velocity.x) > 20;
+      if (moving) this.pet.y -= Math.abs(Math.sin(time / 90)) * 3;
+    }
     // Pattuglia + magia dei nemici ancora vivi.
     this.enemyList.forEach((enemy) => {
       if (!enemy.active) return;

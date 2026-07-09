@@ -13,6 +13,9 @@ export default class ProgressManager {
     this.collectedWords = new Set(); // parole inglesi imparate in tutta la partita
     this.stars = {}; // { [livello]: 1..3 } — il MIGLIOR risultato ottenuto
     this.mangoes = {}; // { [livello]: 0..3 } — manghi dorati trovati (best)
+    this.mistakes = {}; // { [inglese]: quante volte sbagliata } — per il RIPASSO mirato
+    this.achievements = new Set(); // id delle medaglie sbloccate
+    this.costume = 'none'; // il cappello/costume scelto per Captain
     this.load();
   }
 
@@ -26,6 +29,9 @@ export default class ProgressManager {
           words: [...this.collectedWords],
           stars: this.stars,
           mangoes: this.mangoes,
+          mistakes: this.mistakes,
+          achievements: [...this.achievements],
+          costume: this.costume,
         })
       );
     } catch (e) {
@@ -42,6 +48,9 @@ export default class ProgressManager {
       (data.words || []).forEach((w) => this.collectedWords.add(w));
       this.stars = data.stars || {};
       this.mangoes = data.mangoes || {};
+      this.mistakes = data.mistakes || {};
+      (data.achievements || []).forEach((a) => this.achievements.add(a));
+      this.costume = data.costume || 'none';
     } catch (e) {
       // Salvataggio corrotto: si riparte puliti.
     }
@@ -91,12 +100,64 @@ export default class ProgressManager {
     return this.mangoes[level] || 0;
   }
 
+  // --- Errori / RIPASSO MIRATO ---
+  // Ogni volta che una parola viene sbagliata nel quiz, sale il suo contatore:
+  // così il motore del quiz può riproporla più spesso finché non è padroneggiata.
+  recordMistake(english) {
+    if (!english) return;
+    this.mistakes[english] = (this.mistakes[english] || 0) + 1;
+    this.save();
+  }
+
+  // Parola indovinata al primo colpo: è considerata imparata, esce dal ripasso.
+  clearMistake(english) {
+    if (this.mistakes[english]) {
+      delete this.mistakes[english];
+      this.save();
+    }
+  }
+
+  // Le parole ancora da ripassare, dalla più sbagliata alla meno.
+  getReviewWords() {
+    return Object.keys(this.mistakes).sort((a, b) => this.mistakes[b] - this.mistakes[a]);
+  }
+
+  // --- Medaglie / traguardi ---
+  hasAchievement(id) {
+    return this.achievements.has(id);
+  }
+
+  // Sblocca una medaglia; ritorna true SOLO se è la prima volta (per la notifica).
+  unlockAchievement(id) {
+    if (this.achievements.has(id)) return false;
+    this.achievements.add(id);
+    this.save();
+    return true;
+  }
+
+  getAchievements() {
+    return [...this.achievements];
+  }
+
+  // --- Costume di Captain ---
+  getCostume() {
+    return this.costume || 'none';
+  }
+
+  setCostume(id) {
+    this.costume = id;
+    this.save();
+  }
+
   // Ricomincia la partita da capo (usato dal "Play again" del finale).
   reset() {
     this.completedLevels.clear();
     this.collectedWords.clear();
     this.stars = {};
     this.mangoes = {};
+    this.mistakes = {};
+    this.achievements.clear();
+    this.costume = 'none';
     try {
       localStorage.removeItem(STORAGE_KEY);
     } catch (e) {

@@ -2,12 +2,12 @@ import Phaser from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT, TEXTURES } from '../config.js';
 import VocabularyManager from '../systems/VocabularyManager.js';
 import AudioManager from '../systems/AudioManager.js';
+import QuizEngine from '../systems/QuizEngine.js';
 
-// QuizScene: RIPASSO LAMPO dalla mappa — 5 domande sulle parole di UN livello,
-// senza rigiocarlo. Mescola ascolto (senti -> tocca l'icona) e lettura
-// (vedi l'icona -> tocca la parola scritta). Perfetto per 5 minuti di inglese.
-const ROUNDS = 5;
-
+// QuizScene: RIPASSO LAMPO dalla mappa — un giro di domande sulle parole di UN
+// livello, senza rigiocarlo. Usa lo stesso MOTORE del quiz di fine livello
+// (ascolto, lettura, abbinamento thai, intruso, conta, spelling), con difficoltà
+// che cresce col livello. Perfetto per qualche minuto di inglese.
 export default class QuizScene extends Phaser.Scene {
   constructor() {
     super('QuizScene');
@@ -41,108 +41,24 @@ export default class QuizScene extends Phaser.Scene {
     // Kukkai felice che fa da esaminatrice gentile.
     this.add.image(64, 120, TEXTURES.kukkaiPortrait).setScale(0.7);
 
-    // Punteggio a stelline.
-    this.starIcons = [];
-    for (let i = 0; i < ROUNDS; i++) {
-      this.starIcons.push(
-        this.add.text(W / 2 - 76 + i * 38, 96, '☆', { fontSize: '24px', color: '#ffd166' }).setOrigin(0.5)
-      );
-    }
-
     const vocab = new VocabularyManager();
     this.words = vocab.getWordsForLevel(this.levelNumber);
-    this.round = 0;
-    this.score = 0;
-    this.failedThisRound = false;
-    this.targets = Phaser.Utils.Array.Shuffle(this.words.slice()).slice(0, ROUNDS);
-    this.nextRound();
-  }
-
-  nextRound() {
-    if (this.panel) this.panel.destroy();
-    if (this.round >= ROUNDS) {
-      this.endQuiz();
-      return;
-    }
-    this.failedThisRound = false;
-    const target = this.targets[this.round];
-    const reading = this.round % 2 === 1; // si alternano ascolto e lettura
-
-    const others = Phaser.Utils.Array.Shuffle(this.words.filter((w) => w.english !== target.english)).slice(0, 2);
-    const options = Phaser.Utils.Array.Shuffle([target, ...others]);
-
-    this.panel = this.add.container(GAME_WIDTH / 2, 260);
-
-    const qText = reading ? 'Which word is this?' : `Which one is "${target.english}"?`;
-    const q = this.add
-      .text(-14, -110, qText, { fontFamily: 'sans-serif', fontSize: '22px', color: '#ffffff', fontStyle: 'bold' })
-      .setOrigin(0.5);
-    const speaker = this.add.text(q.width / 2 + 12, -110, '🔊', { fontSize: '24px' }).setOrigin(0.5);
-    speaker.setInteractive({ useHandCursor: true });
-    speaker.on('pointerdown', () => this.audio.speak(target.english));
-    this.panel.add([q, speaker]);
-    if (reading) {
-      this.panel.add(this.add.text(0, -64, target.icon || '⭐', { fontSize: '40px' }).setOrigin(0.5));
-    }
-
-    options.forEach((word, i) => {
-      const x = (i - 1) * 150;
-      const tile = this.add.container(x, 16);
-      const bg = this.add.graphics();
-      bg.fillStyle(0xffffff, 0.97);
-      bg.fillRoundedRect(-60, -55, 120, 110, 14);
-      bg.lineStyle(4, 0xffd166, 1);
-      bg.strokeRoundedRect(-60, -55, 120, 110, 14);
-      let face;
-      if (reading) {
-        face = this.add
-          .text(0, 0, word.english, {
-            fontFamily: 'sans-serif',
-            fontSize: word.english.length > 8 ? '15px' : '20px',
-            color: '#2f6fed',
-            fontStyle: 'bold',
-            align: 'center',
-            wordWrap: { width: 108 },
-          })
-          .setOrigin(0.5);
-      } else {
-        face = this.add.text(0, 0, word.icon || '⭐', { fontSize: '46px' }).setOrigin(0.5);
-      }
-      tile.add([bg, face]);
-      tile.setSize(120, 110);
-      tile.setInteractive(new Phaser.Geom.Rectangle(-60, -55, 120, 110), Phaser.Geom.Rectangle.Contains);
-      tile.input.cursor = 'pointer';
-      tile.on('pointerdown', () => this.onAnswer(tile, bg, word, target));
-      this.panel.add(tile);
+    this.quiz = new QuizEngine(this, {
+      words: this.words,
+      allWords: vocab.all,
+      level: this.levelNumber,
+      audio: this.audio,
+      yBase: 260,
+      starY: 96,
+      onComplete: (score, total) => this.endQuiz(score, total),
     });
-
-    if (!reading) this.audio.speak(target.english);
+    this.quiz.start();
   }
 
-  onAnswer(tile, bg, word, target) {
-    if (word.english === target.english) {
-      if (this.sfx) this.sfx.win();
-      bg.lineStyle(5, 0x3fa34d, 1);
-      bg.strokeRoundedRect(-60, -55, 120, 110, 14);
-      this.tweens.add({ targets: tile, scale: 1.15, duration: 130, yoyo: true });
-      if (!this.failedThisRound) {
-        this.score += 1;
-        this.starIcons[this.round].setText('⭐');
-        this.tweens.add({ targets: this.starIcons[this.round], scale: 1.5, duration: 160, yoyo: true });
-      }
-      this.round += 1;
-      this.time.delayedCall(600, () => this.nextRound());
-    } else {
-      if (this.sfx) this.sfx.tink();
-      this.failedThisRound = true;
-      this.tweens.add({ targets: tile, x: tile.x + 8, duration: 50, yoyo: true, repeat: 3 });
-    }
-  }
-
-  endQuiz() {
+  endQuiz(score, total) {
     if (this.sfx) this.sfx.win();
     const msg =
-      this.score >= ROUNDS ? 'PERFECT! You are amazing!' : this.score >= 3 ? 'Great job!' : 'Good practice! Try again soon!';
+      score >= total ? 'PERFECT! You are amazing!' : score >= Math.ceil(total / 2) ? 'Great job!' : 'Good practice! Try again soon!';
     this.add
       .text(GAME_WIDTH / 2, 250, msg, {
         fontFamily: 'sans-serif',

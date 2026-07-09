@@ -88,8 +88,34 @@ export default class MapScene extends Phaser.Scene {
     // La BANCARELLA del Mercato di Kukkai: si sblocca con TUTTI i 24 manghi.
     this.createMarketStall();
 
+    // Pulsanti dei mini-giochi (verbi d'azione + mini-frasi): sempre disponibili,
+    // in basso a sinistra, lontani dalle tappe e dal pulsante Start.
+    this.createMiniGameButton(74, '🏃', 'Action!', 0x3fa34d, 'ActionScene');
+    this.createMiniGameButton(196, '🧩', 'Phrases', 0x8e44c8, 'PhraseScene');
+
     // Pulsante "Start!".
     this.createStartButton();
+  }
+
+  // Pillola di scorciatoia per un mini-gioco (pausa attiva sempre giocabile).
+  createMiniGameButton(x, icon, text, color, sceneKey) {
+    const btn = this.add.container(x, GAME_HEIGHT - 30).setDepth(6);
+    const g = this.add.graphics();
+    g.fillStyle(color, 1);
+    g.fillRoundedRect(-56, -22, 112, 44, 12);
+    g.lineStyle(3, 0xffffff, 1);
+    g.strokeRoundedRect(-56, -22, 112, 44, 12);
+    const ic = this.add.text(-36, 0, icon, { fontSize: '22px' }).setOrigin(0.5);
+    const label = this.add.text(12, 0, text, { fontFamily: 'sans-serif', fontSize: '15px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
+    btn.add([g, ic, label]);
+    this.tweens.add({ targets: btn, scale: 1.06, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    btn.setSize(112, 44);
+    btn.setInteractive(new Phaser.Geom.Rectangle(-56, -22, 112, 44), Phaser.Geom.Rectangle.Contains);
+    btn.input.cursor = 'pointer';
+    btn.on('pointerdown', () => {
+      if (this.sfx) this.sfx.click();
+      this.scene.start(sceneKey, { next: this.nextLevel });
+    });
   }
 
   // Bancarella bonus in alto a sinistra: bloccata mostra i manghi mancanti,

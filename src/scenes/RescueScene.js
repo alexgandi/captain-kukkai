@@ -1,5 +1,7 @@
 import Phaser from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT, TEXTURES } from '../config.js';
+import VocabularyManager from '../systems/VocabularyManager.js';
+import { evaluateAchievements, showAchievementToasts } from '../systems/Achievements.js';
 
 // RescueScene: il FINALE. Tutti i livelli finiti -> Captain libera Teacher Kukkai.
 // Lieto fine festoso con coriandoli, Kukkai e Captain insieme, e "Play again".
@@ -59,6 +61,11 @@ export default class RescueScene extends Phaser.Scene {
         strokeThickness: 4,
       })
       .setOrigin(0.5);
+
+    // MEDAGLIE del gran finale (Hero! e le altre appena maturate).
+    const progress = this.registry.get('progress');
+    const newMedals = evaluateAchievements(progress, new VocabularyManager().all.length);
+    if (newMedals.length) this.time.delayedCall(1200, () => showAchievementToasts(this, newMedals));
 
     this.startConfetti();
     this.createPlayAgainButton();

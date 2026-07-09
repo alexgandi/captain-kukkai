@@ -23,6 +23,7 @@ export function createPlaceholderTextures(scene) {
   createArrowTexture(scene); //                                                Livello 7 (freccia dell'arciere)
   createShieldTexture(scene); //                                               Livello 4 (scudo anti-magia)
   createGoldHatTexture(scene); //                                              premio 3/3 manghi (cappello thai)
+  createElephantPetTexture(scene); //                                          compagno elefantino (cresce con le parole)
   // Livello 8 (spazio): navicella di Captain, navicella aliena, laser, cometa.
   createShipTexture(scene);
   createAlienShipTexture(scene);
@@ -356,6 +357,44 @@ function createGoldHatTexture(scene) {
   g.fillStyle(0xc9a13b, 1);
   g.fillRect(0, 11, 28, 4);
   g.generateTexture('gold_hat', 28, 16);
+  g.destroy();
+}
+
+// L'ELEFANTINO compagno: piccolo pachiderma grigio che guarda a destra
+// (proboscide e testa sul lato destro). Segue Captain e CRESCE (di scala) man
+// mano che il bambino impara nuove parole: da cucciolo a giovane a adulto.
+function createElephantPetTexture(scene) {
+  if (scene.textures.exists('elephant_pet')) return;
+  const g = scene.make.graphics({ add: false });
+  const grey = 0x9aa7b0;
+  const dark = 0x7d8b95;
+  const pink = 0xf4b6c2;
+  // Zampe.
+  g.fillStyle(dark, 1);
+  [10, 20, 28, 38].forEach((x) => g.fillRoundedRect(x, 30, 6, 8, 2));
+  // Corpo.
+  g.fillStyle(grey, 1);
+  g.fillRoundedRect(6, 12, 30, 20, 9);
+  // Testa (a destra).
+  g.fillCircle(38, 20, 11);
+  // Orecchio.
+  g.fillStyle(dark, 1);
+  g.fillCircle(33, 14, 6);
+  // Proboscide: scende e si arriccia in avanti.
+  g.fillStyle(grey, 1);
+  g.fillRoundedRect(45, 18, 5, 14, 2);
+  g.fillRoundedRect(45, 30, 10, 5, 2);
+  // Coda.
+  g.fillStyle(dark, 1);
+  g.fillRect(4, 16, 3, 9);
+  // Guancia rosa + occhio.
+  g.fillStyle(pink, 0.55);
+  g.fillCircle(35, 24, 3);
+  g.fillStyle(0xffffff, 1);
+  g.fillCircle(40, 17, 2.4);
+  g.fillStyle(0x1a1a2e, 1);
+  g.fillCircle(40.6, 17, 1.2);
+  g.generateTexture('elephant_pet', 56, 40);
   g.destroy();
 }
 
