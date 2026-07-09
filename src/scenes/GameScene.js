@@ -13,6 +13,7 @@ import { KUKKAI_LEVEL_START } from '../data/dialogues.js';
 import TouchControls from '../ui/TouchControls.js';
 import { playFx } from '../systems/playFx.js';
 import { getCostume } from '../data/costumes.js';
+import { drawGradientSky, buildJungleBackground, buildIceBackground, buildVolcanoBackground } from '../systems/ParallaxBackground.js';
 
 // GameScene: la scena di gioco.
 // STEP 7: livello lungo (letto dai dati) + camera che scorre e segue Captain.
@@ -924,6 +925,10 @@ export default class GameScene extends Phaser.Scene {
   // Colline in lontananza, con scrollFactor < 1 per la parallasse.
   // Il colore viene dal tema; sul ghiaccio aggiungo una calotta di neve.
   addBackgroundDecor(worldWidth, floorTop) {
+    // CIELO A GRADIENTE per tutti i temi (dietro a tutto): più profondità del
+    // vecchio colore piatto, a costo quasi zero.
+    drawGradientSky(this, this.envKey);
+
     // Città: grattacieli sullo sfondo al posto delle colline (vedi sotto).
     if (this.theme.buildings) {
       this.addCityscape(worldWidth, floorTop);
@@ -931,17 +936,19 @@ export default class GameScene extends Phaser.Scene {
       this.addForestBackdrop(worldWidth, floorTop);
     } else if (this.theme.castle) {
       this.addCastleBackdrop(worldWidth, floorTop);
+    } else if (this.envKey === 'jungle') {
+      // GIUNGLA (L1): sfondo a strati (montagne+templi / alberi / cespugli).
+      buildJungleBackground(this, worldWidth, floorTop);
+    } else if (this.envKey === 'ice') {
+      buildIceBackground(this, worldWidth, floorTop); // vette innevate a strati
+    } else if (this.envKey === 'volcano') {
+      buildVolcanoBackground(this, worldWidth, floorTop); // coni e crateri che brillano
     } else {
+      // Notte (e fallback): colline scure; le stelle/luna le aggiunge il blocco sotto.
       for (let x = 0; x <= worldWidth; x += 300) {
         const hill = this.add.ellipse(x, floorTop, 280, 150, this.theme.hill);
         hill.setScrollFactor(0.5); // si muove a metà velocità -> senso di profondità
         hill.setDepth(-10);
-
-        if (this.theme.snow) {
-          const cap = this.add.ellipse(x, floorTop - 45, 150, 80, 0xffffff);
-          cap.setScrollFactor(0.5);
-          cap.setDepth(-9);
-        }
       }
     }
 
