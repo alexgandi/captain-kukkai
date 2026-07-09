@@ -134,3 +134,95 @@ export function buildVolcanoBackground(scene, worldWidth, floorTop) {
   near.fillStyle(0x1c0f0e, 1);
   for (let x = -60; x <= worldWidth + 60; x += 120) near.fillEllipse(x, floorTop + 10, 172, 82);
 }
+
+// --- Rifiniture per i temi che avevano già uno sfondo di base ---
+
+// CITTÀ: nuvole alte + uno skyline lontanissimo pallido (foschia) + alberelli
+// di strada in primo piano. Si somma allo skyline+neon esistente.
+export function enrichCity(scene, worldWidth, floorTop) {
+  drawClouds(scene, worldWidth, { sf: 0.1, depth: -18, alpha: 0.5 });
+  const far = scene.add.graphics().setScrollFactor(0.18).setDepth(-15);
+  far.fillStyle(0xb9cddd, 0.6);
+  for (let x = -100; x <= worldWidth + 100; x += 108) {
+    const h = 90 + (((x / 108) | 0) % 4) * 40;
+    far.fillRect(x - 40, floorTop - h, 80, h);
+  }
+  // Alberelli di strada vicino al suolo (verde urbano, in primo piano).
+  const near = scene.add.graphics().setScrollFactor(0.82).setDepth(-6);
+  for (let x = 90; x <= worldWidth; x += 250) {
+    near.fillStyle(0x5a4632, 1);
+    near.fillRect(x - 3, floorTop - 34, 6, 34); // tronco
+    near.fillStyle(0x4f8f52, 1);
+    near.fillEllipse(x, floorTop - 42, 46, 40); // chioma
+  }
+}
+
+// FORESTA: cresta di colline nella foschia dietro agli alberi + nuvole tenui +
+// felci scure in primo piano. Si somma alla doppia fila di alberi esistente.
+export function enrichForest(scene, worldWidth, floorTop) {
+  drawClouds(scene, worldWidth, { sf: 0.1, depth: -18, alpha: 0.35 });
+  const far = scene.add.graphics().setScrollFactor(0.2).setDepth(-15);
+  far.fillStyle(0x8fbf9c, 0.55);
+  for (let x = -160; x <= worldWidth + 160; x += 300) far.fillEllipse(x, floorTop, 470, 220);
+  const near = scene.add.graphics().setScrollFactor(0.78).setDepth(-6);
+  near.fillStyle(0x214726, 1);
+  for (let x = -50; x <= worldWidth + 50; x += 108) near.fillEllipse(x, floorTop + 8, 164, 76);
+}
+
+// CASTELLO: una fila di colonne PIÙ lontane e scure (profondità) + pulviscolo
+// che fluttua nella luce delle torce. Si somma alle colonne/stendardi esistenti.
+export function enrichCastle(scene, worldWidth, floorTop) {
+  const far = scene.add.graphics().setScrollFactor(0.28).setDepth(-15);
+  far.fillStyle(0x2c2838, 1);
+  for (let x = 0; x <= worldWidth + 120; x += 118) {
+    far.fillRect(x - 11, 74, 22, floorTop - 74); // fusto lontano
+    far.fillRect(x - 16, 74, 32, 12); // capitello
+    far.fillRect(x + 11, 74, 96, 13); // architrave tra colonne (arco)
+  }
+  addDustMotes(scene, worldWidth, floorTop);
+}
+
+// --- Tocchi "vivi" ---
+
+// Erba che ondeggia sul bordo del suolo (ciuffi che dondolano dalla base).
+export function addGrassFringe(scene, worldWidth, floorTop, colors) {
+  const even = [];
+  const odd = [];
+  let i = 0;
+  for (let x = 24; x < worldWidth; x += 128, i++) {
+    const tuft = scene.add.container(x, floorTop + 3).setDepth(-0.5);
+    const g = scene.add.graphics();
+    g.fillStyle(colors[i % 2], 1);
+    [-8, -3, 2, 7].forEach((bx, k) => {
+      const h = 12 + ((i + k) % 3) * 5;
+      g.fillTriangle(bx - 2.5, 0, bx + 2.5, 0, bx + (k - 1.5), -h);
+    });
+    tuft.add(g);
+    (i % 2 ? even : odd).push(tuft);
+  }
+  scene.tweens.add({ targets: even, angle: 5, duration: 1300, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+  scene.tweens.add({ targets: odd, angle: -5, duration: 1550, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+}
+
+// Farfalle che svolazzano piano (giungla): vagano e battono le ali.
+export function addButterflies(scene, worldWidth, floorTop) {
+  const span = Math.max(1, worldWidth - 400);
+  for (let i = 0; i < 3; i++) {
+    const bx = 320 + (i * 761) % span;
+    const by = floorTop - 130 - (i % 3) * 34;
+    const b = scene.add.text(bx, by, '🦋', { fontSize: '20px' }).setOrigin(0.5).setDepth(4);
+    scene.tweens.add({ targets: b, x: bx + 130, y: by - 34, duration: 4200 + i * 700, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    scene.tweens.add({ targets: b, scaleX: 0.45, duration: 230, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+  }
+}
+
+// Pulviscolo dorato che fluttua (castello): granelli lenti nella luce.
+export function addDustMotes(scene, worldWidth, floorTop) {
+  const span = Math.max(1, worldWidth - 300);
+  for (let i = 0; i < 14; i++) {
+    const mx = 150 + (i * 331) % span;
+    const my = 120 + (i * 53) % Math.max(60, floorTop - 170);
+    const m = scene.add.circle(mx, my, 1.7, 0xffe9b0, 0.5).setDepth(3);
+    scene.tweens.add({ targets: m, y: my - 32, x: mx + 12, alpha: 0.1, duration: 3000 + (i % 5) * 700, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+  }
+}

@@ -13,7 +13,7 @@ import { KUKKAI_LEVEL_START } from '../data/dialogues.js';
 import TouchControls from '../ui/TouchControls.js';
 import { playFx } from '../systems/playFx.js';
 import { getCostume } from '../data/costumes.js';
-import { drawGradientSky, buildJungleBackground, buildIceBackground, buildVolcanoBackground } from '../systems/ParallaxBackground.js';
+import { drawGradientSky, buildJungleBackground, buildIceBackground, buildVolcanoBackground, enrichCity, enrichForest, enrichCastle, addGrassFringe, addButterflies } from '../systems/ParallaxBackground.js';
 
 // GameScene: la scena di gioco.
 // STEP 7: livello lungo (letto dai dati) + camera che scorre e segue Captain.
@@ -813,14 +813,22 @@ export default class GameScene extends Phaser.Scene {
   // CUORE DI SOCCORSO: un ❤️ che fluttua a metà livello. Lo raccogli SOLO se
   // hai perso dei cuori (se sei pieno resta lì, ci puoi tornare dopo).
   buildRescueHeart(worldWidth, floorTop, level) {
-    // Punto libero (lontano dai nemici), poco oltre la metà del livello.
+    // Punto libero (lontano da NEMICI e da SPINE/FUOCO), poco oltre la metà.
+    // Prima era solo lontano dai nemici: così a volte il cuore finiva SOPRA le
+    // spine, quasi impossibile da prendere. Ora tiene conto anche degli hazard,
+    // col margine della loro larghezza, e cerca a destra E a sinistra.
     const enemyXs = level.enemies.map((e) => e.x);
-    let hx = Math.round(worldWidth * 0.55);
-    for (let off = 0; off <= 600; off += 40) {
-      if (!enemyXs.some((ex) => Math.abs(ex - (hx + off)) < 90)) {
-        hx = hx + off;
-        break;
-      }
+    const hazards = level.hazards || [];
+    const blocked = (x) =>
+      x < 120 ||
+      x > worldWidth - 120 ||
+      enemyXs.some((ex) => Math.abs(ex - x) < 90) ||
+      hazards.some((h) => Math.abs(h.x - x) < h.w / 2 + 70);
+    const mid = Math.round(worldWidth * 0.55);
+    let hx = mid;
+    for (let off = 0; off <= 1000; off += 40) {
+      if (!blocked(mid + off)) { hx = mid + off; break; }
+      if (!blocked(mid - off)) { hx = mid - off; break; }
     }
     // Non sovrapporlo alla bandierina del checkpoint (dove c'è).
     if (this.checkpointX && Math.abs(hx - this.checkpointX) < 70) hx += 90;
@@ -932,13 +940,19 @@ export default class GameScene extends Phaser.Scene {
     // Città: grattacieli sullo sfondo al posto delle colline (vedi sotto).
     if (this.theme.buildings) {
       this.addCityscape(worldWidth, floorTop);
+      enrichCity(this, worldWidth, floorTop); // nuvole + skyline lontano + alberelli
     } else if (this.theme.forest) {
       this.addForestBackdrop(worldWidth, floorTop);
+      enrichForest(this, worldWidth, floorTop); // colline sfumate + felci in primo piano
+      addGrassFringe(this, worldWidth, floorTop, [0x3c8a46, 0x2f6d3a]); // erba che ondeggia
     } else if (this.theme.castle) {
       this.addCastleBackdrop(worldWidth, floorTop);
+      enrichCastle(this, worldWidth, floorTop); // colonne lontane + pulviscolo
     } else if (this.envKey === 'jungle') {
       // GIUNGLA (L1): sfondo a strati (montagne+templi / alberi / cespugli).
       buildJungleBackground(this, worldWidth, floorTop);
+      addGrassFringe(this, worldWidth, floorTop, [0x4f9d55, 0x3f8a49]); // erba che ondeggia
+      addButterflies(this, worldWidth, floorTop); // farfalle che svolazzano
     } else if (this.envKey === 'ice') {
       buildIceBackground(this, worldWidth, floorTop); // vette innevate a strati
     } else if (this.envKey === 'volcano') {
