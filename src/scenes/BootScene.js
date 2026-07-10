@@ -69,6 +69,7 @@ export default class BootScene extends Phaser.Scene {
       'sfx_laserfx',
       'sfx_stompfx',
       'theme_song',
+      'title_jingle', // la SIGLA cantata ("Captain and Teacher Kukkai!")
     ].forEach((key) => this.load.audio(key, `audio/${key}.mp3`));
   }
 

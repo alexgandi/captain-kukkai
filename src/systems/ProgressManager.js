@@ -17,6 +17,8 @@ export default class ProgressManager {
     this.achievements = new Set(); // id delle medaglie sbloccate
     this.costume = 'none'; // il cappello/costume scelto per Captain
     this.playerName = ''; // il nome del bambino (per il diploma)
+    this.streak = 0; // giorni CONSECUTIVI di gioco (la fiammella 🔥)
+    this.lastPlayDay = ''; // ultimo giorno di gioco (per capire se la serie continua)
     this.load();
   }
 
@@ -34,6 +36,8 @@ export default class ProgressManager {
           achievements: [...this.achievements],
           costume: this.costume,
           playerName: this.playerName,
+          streak: this.streak,
+          lastPlayDay: this.lastPlayDay,
         })
       );
     } catch (e) {
@@ -54,6 +58,8 @@ export default class ProgressManager {
       (data.achievements || []).forEach((a) => this.achievements.add(a));
       this.costume = data.costume || 'none';
       this.playerName = data.playerName || '';
+      this.streak = data.streak || 0;
+      this.lastPlayDay = data.lastPlayDay || '';
     } catch (e) {
       // Salvataggio corrotto: si riparte puliti.
     }
@@ -142,6 +148,21 @@ export default class ProgressManager {
     return [...this.achievements];
   }
 
+  // --- STREAK: giorni consecutivi di gioco (abitudine quotidiana) ---
+  // Da chiamare a ogni apertura del gioco. Se è un NUOVO giorno: ieri ho
+  // giocato -> la serie cresce; altrimenti riparte da 1. Ritorna il conteggio
+  // e se è appena cresciuto (per festeggiare i traguardi).
+  touchStreak() {
+    const dayKey = (d) => `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+    const today = dayKey(new Date());
+    const yesterday = dayKey(new Date(Date.now() - 86400000));
+    if (this.lastPlayDay === today) return { count: this.streak, grew: false };
+    this.streak = this.lastPlayDay === yesterday ? (this.streak || 0) + 1 : 1;
+    this.lastPlayDay = today;
+    this.save();
+    return { count: this.streak, grew: true };
+  }
+
   // --- Nome del bambino (per il diploma) ---
   getPlayerName() {
     return this.playerName || '';
@@ -176,7 +197,7 @@ export default class ProgressManager {
     } catch (e) {
       // niente storage: pazienza.
     }
-    // Il NOME del bambino sopravvive al "Play again": è suo, non della partita.
-    if (this.playerName) this.save();
+    // NOME e STREAK sopravvivono al "Play again": sono del bambino, non della partita.
+    if (this.playerName || this.streak) this.save();
   }
 }

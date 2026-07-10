@@ -14,9 +14,17 @@ export default class RescueScene extends Phaser.Scene {
     const W = GAME_WIDTH;
     const H = GAME_HEIGHT;
 
-    // Musica di festa per il lieto fine.
+    // Musica di festa per il lieto fine: la SIGLA cantata del gioco (il momento
+    // più alto merita il tema!); se il file manca, il vecchio tema sintetico.
     const music = this.registry.get('music');
-    if (music) music.play('celebration');
+    if (this.cache.audio.exists('title_jingle')) {
+      if (music) music.stop();
+      this.jingle = this.sound.add('title_jingle', { volume: 0.6 });
+      this.jingle.play();
+      this.events.once('shutdown', () => this.jingle && this.jingle.stop());
+    } else if (music) {
+      music.play('celebration');
+    }
 
     // Sfondo luminoso + prato: aria di festa.
     this.cameras.main.setBackgroundColor(0x9be0ff);

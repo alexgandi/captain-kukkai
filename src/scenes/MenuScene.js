@@ -121,6 +121,17 @@ export default class MenuScene extends Phaser.Scene {
     // Pulsante Play.
     this.createPlayButton();
 
+    // SIGLA cantata: parte al PRIMO tocco sul menu (i browser sbloccano l'audio
+    // solo dentro un gesto). Una volta per sessione, volume gentile.
+    this.input.once('pointerdown', () => {
+      if (this.cache.audio.exists('title_jingle') && !this.registry.get('jingleHeard')) {
+        this.registry.set('jingleHeard', true);
+        if (this.sound && this.sound.unlock) this.sound.unlock();
+        this.titleJingle = this.sound.add('title_jingle', { volume: 0.5 });
+        this.titleJingle.play();
+      }
+    });
+
     // PAROLA DEL GIORNO: ogni giorno una parola diversa, toccala per sentirla.
     // Piccolo rituale quotidiano di inglese, ancora prima di giocare.
     const vocab = new VocabularyManager();
@@ -143,6 +154,47 @@ export default class MenuScene extends Phaser.Scene {
       this.audio.speak(wotd.english);
       this.tweens.add({ targets: wotdBox, scale: 1.06, duration: 100, yoyo: true });
     });
+
+    // STREAK 🔥: giorni consecutivi di gioco. Si aggiorna a ogni apertura e
+    // ai traguardi (3/7/14/30) festeggia — il rituale quotidiano che crea l'abitudine.
+    const progress = this.registry.get('progress');
+    if (progress) {
+      const { count, grew } = progress.touchStreak();
+      const pill = this.add.container(14, 80).setDepth(20);
+      const pbg = this.add.graphics();
+      pbg.fillStyle(0xfff3e0, 0.94);
+      pbg.fillRoundedRect(0, 0, 128, 34, 10);
+      pbg.lineStyle(2.5, 0xff9f1c, 1);
+      pbg.strokeRoundedRect(0, 0, 128, 34, 10);
+      const ptxt = this.add.text(12, 8, `🔥 ${count} ${count === 1 ? 'day' : 'days'}`, {
+        fontFamily: 'sans-serif',
+        fontSize: '16px',
+        color: '#c2410c',
+        fontStyle: 'bold',
+      });
+      pill.add([pbg, ptxt]);
+      if (grew) {
+        pill.setScale(0.2);
+        this.tweens.add({ targets: pill, scale: 1, duration: 380, ease: 'Back.easeOut', delay: 250 });
+      }
+      // Traguardo raggiunto OGGI: banner festoso al centro.
+      if (grew && [3, 7, 14, 30].includes(count)) {
+        const banner = this.add
+          .text(W / 2, 248, `${count} days in a row! 🔥 เก่งมาก!`, {
+            fontFamily: 'sans-serif',
+            fontSize: '24px',
+            color: '#ff9f1c',
+            fontStyle: 'bold',
+            stroke: '#1a1a2e',
+            strokeThickness: 5,
+          })
+          .setOrigin(0.5)
+          .setDepth(30)
+          .setScale(0.2);
+        this.tweens.add({ targets: banner, scale: 1, duration: 400, ease: 'Back.easeOut', delay: 600 });
+        this.tweens.add({ targets: banner, alpha: 0, delay: 3400, duration: 500, onComplete: () => banner.destroy() });
+      }
+    }
 
     // Dedica: questo gioco è nato per un bambino vero. 💙
     this.add
@@ -192,6 +244,7 @@ export default class MenuScene extends Phaser.Scene {
       const music = this.registry.get('music');
       if (music && music.ensureCtx) music.ensureCtx();
       if (this.sound && this.sound.unlock) this.sound.unlock(); // anche l'audio di Phaser (MP3 voce)
+      if (this.titleJingle) this.titleJingle.stop(); // nell'intro parla Kukkai: sigla via
       if (this.sfx) this.sfx.click();
       this.scene.start('IntroScene');
     };
