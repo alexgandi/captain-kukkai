@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { t } from '../systems/i18n.js';
 import { GAME_WIDTH, GAME_HEIGHT, TEXTURES } from '../config.js';
 import VocabularyManager from '../systems/VocabularyManager.js';
 import AudioManager from '../systems/AudioManager.js';
@@ -176,7 +177,7 @@ export default class MarketScene extends Phaser.Scene {
     const bg = this.add.graphics();
     bg.fillStyle(0x2f6fed, 1);
     bg.fillRoundedRect(-110, -22, 220, 44, 12);
-    const label = this.add.text(0, 0, 'Map  🗺️  (Space)', { fontFamily: 'sans-serif', fontSize: '19px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
+    const label = this.add.text(0, 0, t(this, 'mapBtn'), { fontFamily: 'sans-serif', fontSize: '19px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
     btn.add([bg, label]);
     btn.setSize(220, 44);
     btn.setInteractive(new Phaser.Geom.Rectangle(-110, -22, 220, 44), Phaser.Geom.Rectangle.Contains);

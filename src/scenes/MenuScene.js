@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT, COLORS, TEXTURES } from '../config.js';
 import VocabularyManager from '../systems/VocabularyManager.js';
 import AudioManager from '../systems/AudioManager.js';
+import { t, getLang, setLang } from '../systems/i18n.js';
 
 // MenuScene: la schermata titolo. Primo schermo del gioco.
 // Il pulsante Play è anche il primo GESTO dell'utente: sblocca l'audio del
@@ -104,10 +105,22 @@ export default class MenuScene extends Phaser.Scene {
       this.scene.start('WardrobeScene', { returnTo: 'MenuScene' });
     });
 
+    // Pulsantino Album degli sticker.
+    const albumBtn = this.add
+      .text(W - 154, 14, '📔', { fontSize: '30px' })
+      .setOrigin(1, 0)
+      .setDepth(20)
+      .setPadding(10)
+      .setInteractive({ useHandCursor: true });
+    albumBtn.on('pointerdown', () => {
+      if (this.sfx) this.sfx.click();
+      this.scene.start('AlbumScene', { returnTo: 'MenuScene' });
+    });
+
     // Pulsantino "For grown-ups" (in basso a destra, piccolo e defilato): apre la
     // scheda dei progressi per i genitori, protetta da un cancello matematico.
     const parentBtn = this.add
-      .text(W - 12, H - 12, '👨‍👩‍👧 For grown-ups', { fontFamily: 'sans-serif', fontSize: '13px', color: '#ffffff', stroke: '#1a1a2e', strokeThickness: 3 })
+      .text(W - 12, H - 12, t(this, 'forGrownups'), { fontFamily: 'sans-serif', fontSize: '13px', color: '#ffffff', stroke: '#1a1a2e', strokeThickness: 3 })
       .setOrigin(1, 1)
       .setDepth(20)
       .setPadding(8)
@@ -144,7 +157,7 @@ export default class MenuScene extends Phaser.Scene {
     wbg.fillRoundedRect(0, 0, 200, 58, 12);
     wbg.lineStyle(3, 0xffd166, 1);
     wbg.strokeRoundedRect(0, 0, 200, 58, 12);
-    const wtitle = this.add.text(12, 8, 'Word of the day  🔊', { fontFamily: 'sans-serif', fontSize: '12px', color: '#8a5a17', fontStyle: 'bold' });
+    const wtitle = this.add.text(12, 8, t(this, 'wordOfDay'), { fontFamily: 'sans-serif', fontSize: '12px', color: '#8a5a17', fontStyle: 'bold' });
     const wword = this.add.text(12, 26, `${wotd.icon}  ${wotd.english}`, { fontFamily: 'sans-serif', fontSize: '20px', color: '#2f6fed', fontStyle: 'bold' });
     wotdBox.add([wbg, wtitle, wword]);
     wotdBox.setSize(200, 58);
@@ -166,7 +179,7 @@ export default class MenuScene extends Phaser.Scene {
       pbg.fillRoundedRect(0, 0, 128, 34, 10);
       pbg.lineStyle(2.5, 0xff9f1c, 1);
       pbg.strokeRoundedRect(0, 0, 128, 34, 10);
-      const ptxt = this.add.text(12, 8, `🔥 ${count} ${count === 1 ? 'day' : 'days'}`, {
+      const ptxt = this.add.text(12, 8, t(this, 'days', count), {
         fontFamily: 'sans-serif',
         fontSize: '16px',
         color: '#c2410c',
@@ -196,6 +209,28 @@ export default class MenuScene extends Phaser.Scene {
       }
     }
 
+    // TOGGLE LINGUA della cornice (EN/ไทย), in basso a sinistra: per genitori e
+    // maestre thai. Cambia SOLO menu e pulsanti; l'inglese didattico resta.
+    const lang = getLang(this.registry);
+    const langBtn = this.add
+      .text(12, H - 12, lang === 'th' ? '🌐 ไทย · EN' : '🌐 EN · ไทย', {
+        fontFamily: 'sans-serif',
+        fontSize: '14px',
+        color: '#ffffff',
+        fontStyle: 'bold',
+        stroke: '#1a1a2e',
+        strokeThickness: 3,
+      })
+      .setOrigin(0, 1)
+      .setDepth(20)
+      .setPadding(8)
+      .setInteractive({ useHandCursor: true });
+    langBtn.on('pointerdown', () => {
+      if (this.sfx) this.sfx.click();
+      setLang(this.registry, lang === 'th' ? 'en' : 'th');
+      this.scene.restart(); // il menu si ridisegna nella nuova lingua
+    });
+
     // Dedica: questo gioco è nato per un bambino vero. 💙
     this.add
       .text(W / 2, H - 10, 'Made with ❤️ for Captain', {
@@ -218,7 +253,7 @@ export default class MenuScene extends Phaser.Scene {
     bg.lineStyle(4, 0xffffff, 1);
     bg.strokeRoundedRect(-110, -30, 220, 60, 14);
     const label = this.add
-      .text(0, 0, '▶  Play', {
+      .text(0, 0, t(this, 'play'), {
         fontFamily: 'sans-serif',
         fontSize: '30px',
         color: '#ffffff',

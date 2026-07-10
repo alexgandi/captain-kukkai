@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT, TEXTURES } from '../config.js';
+import { t } from '../systems/i18n.js';
 
 // MapScene: la MAPPA DEL VIAGGIO. Tra un livello e l'altro mostra il percorso di
 // Captain verso Kukkai: 8 tappe (giungla -> ... -> castello -> spazio), le stelle
@@ -90,8 +91,8 @@ export default class MapScene extends Phaser.Scene {
 
     // Pulsanti dei mini-giochi (verbi d'azione + mini-frasi): sempre disponibili,
     // in basso a sinistra, lontani dalle tappe e dal pulsante Start.
-    this.createMiniGameButton(74, '🏃', 'Action!', 0x3fa34d, 'ActionScene');
-    this.createMiniGameButton(196, '🧩', 'Phrases', 0x8e44c8, 'PhraseScene');
+    this.createMiniGameButton(74, '🏃', t(this, 'action'), 0x3fa34d, 'ActionScene');
+    this.createMiniGameButton(196, '🧩', t(this, 'phrases'), 0x8e44c8, 'PhraseScene');
 
     // Pulsante "Start!".
     this.createStartButton();
@@ -135,7 +136,7 @@ export default class MapScene extends Phaser.Scene {
     g.fillRect(-30, 2, 60, 16);
     const icon = this.add.text(0, 8, unlocked ? '🥭' : '🔒', { fontSize: '18px' }).setOrigin(0.5);
     const label = this.add
-      .text(0, 34, unlocked ? 'Market!' : `🥭 ${total}/24`, {
+      .text(0, 34, unlocked ? t(this, 'market') : `🥭 ${total}/24`, {
         fontFamily: 'sans-serif',
         fontSize: '12px',
         color: unlocked ? '#ffd166' : '#aab6c2',
@@ -252,17 +253,17 @@ export default class MapScene extends Phaser.Scene {
       });
       menu.add(btn);
     };
-    mkBtn(GAME_HEIGHT / 2 - 14, 'Play again  ▶', 0x2f6fed, () => {
+    mkBtn(GAME_HEIGHT / 2 - 14, t(this, 'playAgain'), 0x2f6fed, () => {
       if (stop.level === 8) this.scene.start('SpaceScene');
       else this.scene.start('GameScene', { level: stop.level });
     });
-    mkBtn(GAME_HEIGHT / 2 + 38, 'Quick Quiz  ⚡', 0x8e44c8, () => {
+    mkBtn(GAME_HEIGHT / 2 + 38, t(this, 'quickQuiz'), 0x8e44c8, () => {
       this.scene.start('QuizScene', { level: stop.level, next: this.nextLevel });
     });
   }
 
   createStartButton() {
-    const label = this.nextLevel === 8 ? 'Blast off!  🚀   (Space)' : `Start level ${this.nextLevel}  ▶   (Space)`;
+    const label = this.nextLevel === 8 ? t(this, 'blastOff') : t(this, 'startLevel', this.nextLevel);
     const btn = this.add.container(GAME_WIDTH / 2, GAME_HEIGHT - 32).setDepth(10);
     const bg = this.add.graphics();
     bg.fillStyle(0x2f6fed, 1);

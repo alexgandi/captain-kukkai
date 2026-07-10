@@ -17,6 +17,7 @@ import ActionScene from './scenes/ActionScene.js';
 import ParentScene from './scenes/ParentScene.js';
 import PhraseScene from './scenes/PhraseScene.js';
 import AchievementsScene from './scenes/AchievementsScene.js';
+import AlbumScene from './scenes/AlbumScene.js';
 import WardrobeScene from './scenes/WardrobeScene.js';
 
 // Questo è il punto d'ingresso del gioco.
@@ -45,7 +46,7 @@ const config = {
   },
   // La lista delle scene. La PRIMA parte per prima: BootScene prepara gli asset,
   // poi IntroScene (Kukkai), poi GameScene. Man mano aggiungeremo MenuScene, ecc.
-  scene: [BootScene, MenuScene, IntroScene, MapScene, GameScene, SpaceScene, LevelCompleteScene, RescueScene, WordBookScene, PauseScene, CertificateScene, MarketScene, QuizScene, ActionScene, ParentScene, PhraseScene, AchievementsScene, WardrobeScene],
+  scene: [BootScene, MenuScene, IntroScene, MapScene, GameScene, SpaceScene, LevelCompleteScene, RescueScene, WordBookScene, PauseScene, CertificateScene, MarketScene, QuizScene, ActionScene, ParentScene, PhraseScene, AchievementsScene, WardrobeScene, AlbumScene],
 };
 
 // Avvia il gioco.

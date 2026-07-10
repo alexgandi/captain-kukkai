@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { t } from '../systems/i18n.js';
 import { GAME_WIDTH, GAME_HEIGHT } from '../config.js';
 import VocabularyManager from '../systems/VocabularyManager.js';
 
@@ -139,7 +140,7 @@ export default class ParentScene extends Phaser.Scene {
     const bg = this.add.graphics();
     bg.fillStyle(0x3fa34d, 1);
     bg.fillRoundedRect(-90, -20, 180, 40, 11);
-    const label = this.add.text(0, 0, '⬅ Back to menu', { fontFamily: 'sans-serif', fontSize: '17px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
+    const label = this.add.text(0, 0, t(this, 'backToMenu'), { fontFamily: 'sans-serif', fontSize: '17px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
     btn.add([bg, label]);
     btn.setSize(180, 40);
     btn.setInteractive(new Phaser.Geom.Rectangle(-90, -20, 180, 40), Phaser.Geom.Rectangle.Contains);

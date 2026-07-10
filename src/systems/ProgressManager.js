@@ -15,10 +15,12 @@ export default class ProgressManager {
     this.mangoes = {}; // { [livello]: 0..3 } — manghi dorati trovati (best)
     this.mistakes = {}; // { [inglese]: quante volte sbagliata } — per il RIPASSO mirato
     this.achievements = new Set(); // id delle medaglie sbloccate
+    this.stickers = new Set(); // id degli sticker dell'album (uno per livello completato)
     this.costume = 'none'; // il cappello/costume scelto per Captain
     this.playerName = ''; // il nome del bambino (per il diploma)
     this.streak = 0; // giorni CONSECUTIVI di gioco (la fiammella 🔥)
     this.lastPlayDay = ''; // ultimo giorno di gioco (per capire se la serie continua)
+    this.uiLang = 'en'; // lingua della CORNICE (menu/pulsanti): 'en' | 'th'
     this.load();
   }
 
@@ -34,10 +36,12 @@ export default class ProgressManager {
           mangoes: this.mangoes,
           mistakes: this.mistakes,
           achievements: [...this.achievements],
+          stickers: [...this.stickers],
           costume: this.costume,
           playerName: this.playerName,
           streak: this.streak,
           lastPlayDay: this.lastPlayDay,
+          uiLang: this.uiLang,
         })
       );
     } catch (e) {
@@ -56,10 +60,12 @@ export default class ProgressManager {
       this.mangoes = data.mangoes || {};
       this.mistakes = data.mistakes || {};
       (data.achievements || []).forEach((a) => this.achievements.add(a));
+      (data.stickers || []).forEach((s) => this.stickers.add(s));
       this.costume = data.costume || 'none';
       this.playerName = data.playerName || '';
       this.streak = data.streak || 0;
       this.lastPlayDay = data.lastPlayDay || '';
+      this.uiLang = data.uiLang || 'en';
     } catch (e) {
       // Salvataggio corrotto: si riparte puliti.
     }
@@ -148,6 +154,18 @@ export default class ProgressManager {
     return [...this.achievements];
   }
 
+  // --- Sticker dell'album (meta-collezione) ---
+  addSticker(id) {
+    if (!id || this.stickers.has(id)) return false;
+    this.stickers.add(id);
+    this.save();
+    return true;
+  }
+
+  getStickers() {
+    return [...this.stickers];
+  }
+
   // --- STREAK: giorni consecutivi di gioco (abitudine quotidiana) ---
   // Da chiamare a ogni apertura del gioco. Se è un NUOVO giorno: ieri ho
   // giocato -> la serie cresce; altrimenti riparte da 1. Ritorna il conteggio
@@ -161,6 +179,12 @@ export default class ProgressManager {
     this.lastPlayDay = today;
     this.save();
     return { count: this.streak, grew: true };
+  }
+
+  // --- Lingua della cornice UI ---
+  setUiLang(lang) {
+    this.uiLang = lang === 'th' ? 'th' : 'en';
+    this.save();
   }
 
   // --- Nome del bambino (per il diploma) ---
@@ -191,13 +215,14 @@ export default class ProgressManager {
     this.mangoes = {};
     this.mistakes = {};
     this.achievements.clear();
+    this.stickers.clear();
     this.costume = 'none';
     try {
       localStorage.removeItem(STORAGE_KEY);
     } catch (e) {
       // niente storage: pazienza.
     }
-    // NOME e STREAK sopravvivono al "Play again": sono del bambino, non della partita.
-    if (this.playerName || this.streak) this.save();
+    // NOME, STREAK e LINGUA sopravvivono al "Play again": sono del bambino, non della partita.
+    if (this.playerName || this.streak || this.uiLang !== 'en') this.save();
   }
 }

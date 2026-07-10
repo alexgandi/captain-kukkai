@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { t } from '../systems/i18n.js';
 import { GAME_WIDTH, GAME_HEIGHT, TEXTURES } from '../config.js';
 import { COSTUMES, getCostume } from '../data/costumes.js';
 
@@ -86,7 +87,7 @@ export default class WardrobeScene extends Phaser.Scene {
     const bg = this.add.graphics();
     bg.fillStyle(0x3fa34d, 1);
     bg.fillRoundedRect(-90, -19, 180, 38, 11);
-    const label = this.add.text(0, 0, '⬅ Back', { fontFamily: 'sans-serif', fontSize: '17px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
+    const label = this.add.text(0, 0, t(this, 'back'), { fontFamily: 'sans-serif', fontSize: '17px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
     btn.add([bg, label]);
     btn.setSize(180, 38);
     btn.setInteractive(new Phaser.Geom.Rectangle(-90, -19, 180, 38), Phaser.Geom.Rectangle.Contains);

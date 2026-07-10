@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { t } from '../systems/i18n.js';
 import { GAME_WIDTH, GAME_HEIGHT, TEXTURES } from '../config.js';
 
 // CertificateScene: il DIPLOMA di Captain! Dopo il finale, una pergamena
@@ -258,8 +259,8 @@ export default class CertificateScene extends Phaser.Scene {
       return btn;
     };
     this.bottomButtons = [
-      mk(GAME_WIDTH / 2 - 125, 230, 0x3fa34d, 'Share  📤', () => this.shareDiploma()),
-      mk(GAME_WIDTH / 2 + 125, 230, 0x2f6fed, 'Play again  ↺', () => this.playAgain()),
+      mk(GAME_WIDTH / 2 - 125, 230, 0x3fa34d, t(this, 'share'), () => this.shareDiploma()),
+      mk(GAME_WIDTH / 2 + 125, 230, 0x2f6fed, t(this, 'playAgainCert'), () => this.playAgain()),
     ];
     this.input.keyboard.once('keydown-SPACE', () => this.playAgain());
     this.input.keyboard.once('keydown-ENTER', () => this.playAgain());

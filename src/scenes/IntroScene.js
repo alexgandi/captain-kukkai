@@ -46,8 +46,40 @@ export default class IntroScene extends Phaser.Scene {
     // Quindi l'intro parte DA SOLA dopo un attimo (niente "Tap to start" doppio).
     // Poi ogni tap/SPAZIO fa avanzare le battute; alla fine si va al gioco.
     this.time.delayedCall(350, () => {
-      // Dall'intro si va alla MAPPA (si vede il viaggio), poi al livello 1.
-      this.dialogue.start(KUKKAI_INTRO, () => this.scene.start('MapScene', { next: 1 }));
+      this.dialogue.start(KUKKAI_INTRO, () => this.goPlay());
     });
+
+    // SKIP sempre visibile (onboarding: mai trattenere chi vuole giocare).
+    const skip = this.add
+      .text(GAME_WIDTH - 14, 12, 'Skip  ⏭', {
+        fontFamily: 'sans-serif',
+        fontSize: '16px',
+        color: '#ffffff',
+        fontStyle: 'bold',
+        stroke: '#1a1a2e',
+        strokeThickness: 4,
+      })
+      .setOrigin(1, 0)
+      .setDepth(50)
+      .setPadding(10)
+      .setInteractive({ useHandCursor: true });
+    skip.on('pointerdown', () => {
+      // Zittisce la battuta in corso prima di cambiare scena.
+      if (this.audio.currentSound) this.audio.currentSound.stop();
+      if (window.speechSynthesis) window.speechSynthesis.cancel();
+      this.goPlay();
+    });
+  }
+
+  // ONBOARDING RAPIDO: alla PRIMA partita assoluta si salta la mappa e si
+  // atterra dritti nel Livello 1 (prima parola imparata in meno tap possibile);
+  // dalla seconda in poi si passa dalla mappa, che ormai ha senso (il viaggio).
+  goPlay() {
+    if (this.leaving) return;
+    this.leaving = true;
+    const progress = this.registry.get('progress');
+    const firstTime = !progress || progress.completedLevels.size === 0;
+    if (firstTime) this.scene.start('GameScene', { level: 1 });
+    else this.scene.start('MapScene', { next: 1 });
   }
 }

@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { t } from '../systems/i18n.js';
 import { GAME_WIDTH, GAME_HEIGHT } from '../config.js';
 
 // PauseScene: overlay di PAUSA sopra il gioco (GameScene o SpaceScene).
@@ -46,7 +47,7 @@ export default class PauseScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.makeButton(W / 2, H / 2 + 8, 'Resume  ▶', 0x2f6fed, () => this.resumeGame());
-    this.makeButton(W / 2, H / 2 + 64, 'Map  🗺️', 0x5a5560, () => this.toMap());
+    this.makeButton(W / 2, H / 2 + 64, t(this, 'mapBtn'), 0x5a5560, () => this.toMap());
 
     // Tasti: P o ESC riprendono subito.
     this.input.keyboard.on('keydown-P', () => this.resumeGame());

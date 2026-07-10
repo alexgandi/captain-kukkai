@@ -4,6 +4,7 @@ import AudioManager from '../systems/AudioManager.js';
 import VocabularyManager from '../systems/VocabularyManager.js';
 import QuizEngine from '../systems/QuizEngine.js';
 import { evaluateAchievements, showAchievementToasts } from '../systems/Achievements.js';
+import { pickNewSticker } from '../data/stickers.js';
 import DialoguePortrait from '../ui/DialoguePortrait.js';
 import { KUKKAI_LEVEL_END } from '../data/dialogues.js';
 import { LEVEL_CONFIG, LEVEL_COUNT } from '../data/levels.js';
@@ -134,8 +135,45 @@ export default class LevelCompleteScene extends Phaser.Scene {
       done.destroy();
       if (this.quizHeader) this.quizHeader.destroy();
       if (this.quiz) this.quiz.clear();
+      // ALBUM: uno sticker nuovo per il livello completato (+1 se quiz perfetto).
+      this.awardStickers(score >= total ? 2 : 1);
       this.revealRecap();
     });
+  }
+
+  // Pesca N sticker nuovi e li rivela con una card che piove dall'alto.
+  awardStickers(count) {
+    if (!this.progress) return;
+    const won = [];
+    for (let i = 0; i < count; i++) {
+      const s = pickNewSticker(this.progress.getStickers());
+      if (s && this.progress.addSticker(s.id)) won.push(s);
+    }
+    won.forEach((s, i) => {
+      this.time.delayedCall(500 + i * 1900, () => this.showStickerReveal(s, i === 0 && won.length > 1));
+    });
+  }
+
+  showStickerReveal(sticker, hasBonusNext) {
+    const W = GAME_WIDTH;
+    const card = this.add.container(W / 2, -90).setDepth(500);
+    const bg = this.add.graphics();
+    bg.fillStyle(0xfff8e7, 0.98);
+    bg.fillRoundedRect(-105, -58, 210, 116, 16);
+    bg.lineStyle(4, 0xffd166, 1);
+    bg.strokeRoundedRect(-105, -58, 210, 116, 16);
+    const head = this.add
+      .text(0, -38, 'New sticker!  สติกเกอร์ใหม่!', { fontFamily: 'sans-serif', fontSize: '13px', color: '#8a5a17', fontStyle: 'bold' })
+      .setOrigin(0.5);
+    const icon = this.add.text(0, -2, sticker.icon, { fontSize: '38px' }).setOrigin(0.5);
+    const name = this.add
+      .text(0, 36, `${sticker.en} · ${sticker.th}`, { fontFamily: 'sans-serif', fontSize: '14px', color: '#2f6fed', fontStyle: 'bold' })
+      .setOrigin(0.5);
+    card.add([bg, head, icon, name]);
+    if (this.registry.get('sfx')) this.registry.get('sfx').win();
+    this.tweens.add({ targets: card, y: 96, duration: 450, ease: 'Back.easeOut' });
+    this.tweens.add({ targets: icon, scale: 1.25, delay: 450, duration: 200, yoyo: true });
+    this.tweens.add({ targets: card, y: -110, delay: hasBonusNext ? 1600 : 2400, duration: 350, ease: 'Back.easeIn', onComplete: () => card.destroy() });
   }
 
   // Sfondo thailandese: cielo al tramonto, alone dorato e skyline di templi.

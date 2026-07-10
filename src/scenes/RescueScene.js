@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { t } from '../systems/i18n.js';
 import { GAME_WIDTH, GAME_HEIGHT, TEXTURES } from '../config.js';
 import VocabularyManager from '../systems/VocabularyManager.js';
 import { evaluateAchievements, showAchievementToasts } from '../systems/Achievements.js';
@@ -106,7 +107,7 @@ export default class RescueScene extends Phaser.Scene {
     bg.fillStyle(0x2f6fed, 1);
     bg.fillRoundedRect(-130, -24, 260, 48, 12);
     const label = this.add
-      .text(0, 0, 'Your diploma!  🎓   (Space)', {
+      .text(0, 0, t(this, 'yourDiploma'), {
         fontFamily: 'sans-serif',
         fontSize: '20px',
         color: '#ffffff',
