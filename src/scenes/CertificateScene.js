@@ -55,11 +55,11 @@ export default class CertificateScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     // Kukkai (felice!) e Captain ai lati — medaglioni gemelli sul diploma.
-    this.add.image(86, 150, TEXTURES.kukkaiPortrait).setScale(0.9);
+    this.add.image(86, 150, TEXTURES.kukkaiPortrait).setScale(0.45);
     const hasCapPhoto = this.textures.exists('captain_photo');
     this.add
       .image(W - 86, 150, hasCapPhoto ? 'captain_photo' : TEXTURES.captain)
-      .setScale(hasCapPhoto ? 0.9 : 1.5);
+      .setScale(hasCapPhoto ? 0.45 : 1.5);
 
     // Il cuore del diploma.
     const words = this.progress ? this.progress.getCollectedWords().length : 0;

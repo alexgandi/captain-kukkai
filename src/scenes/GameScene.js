@@ -1497,7 +1497,7 @@ export default class GameScene extends Phaser.Scene {
 
     // 1) Kukkai compare accanto al tempietto (quasi libera... e già spaventata).
     const kukkai = this.add.image(gx - 56, groundY, 'kukkai_scared').setScale(0.001).setDepth(20);
-    this.tweens.add({ targets: kukkai, scale: 0.62, duration: 420, ease: 'Back.easeOut' });
+    this.tweens.add({ targets: kukkai, scale: 0.31, duration: 420, ease: 'Back.easeOut' });
 
     // 2) L'astronave dello Yaksha scende dall'alto... e LUI PARLA (voce vera!).
     const ship = this.add.image(gx - 56, -80, 'boss_ship').setDepth(21);
@@ -1515,7 +1515,7 @@ export default class GameScene extends Phaser.Scene {
       this.tweens.add({
         targets: kukkai,
         y: 140,
-        scale: 0.3,
+        scale: 0.15,
         angle: 10,
         delay: 250,
         duration: 950,

@@ -81,7 +81,7 @@ export default class MapScene extends Phaser.Scene {
     if (!this.progress || !this.progress.isLevelDone(8)) {
       const ship = this.add.image(last.x + 26, last.y - 78, 'boss_ship').setScale(0.5).setDepth(5);
       this.tweens.add({ targets: ship, y: last.y - 86, duration: 1300, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-      const kukkai = this.add.image(last.x + 12, last.y - 46, 'kukkai_scared').setScale(0.3).setDepth(5);
+      const kukkai = this.add.image(last.x + 12, last.y - 46, 'kukkai_scared').setScale(0.15).setDepth(5);
       this.tweens.add({ targets: kukkai, y: last.y - 52, duration: 1300, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
       this.add.text(last.x + 20, last.y - 112, 'Help!', { fontFamily: 'sans-serif', fontSize: '13px', color: '#ffe14d' }).setOrigin(0.5);
     }

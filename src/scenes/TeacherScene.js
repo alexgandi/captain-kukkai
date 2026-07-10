@@ -24,7 +24,7 @@ export default class TeacherScene extends Phaser.Scene {
     this.add.text(W / 2, 26, '🍎 For Teachers · สำหรับคุณครู', { fontFamily: 'sans-serif', fontSize: '24px', color: '#ffd166', fontStyle: 'bold' }).setOrigin(0.5);
 
     // Kukkai, la maestra del gioco, fa gli onori di casa.
-    this.add.image(64, 96, TEXTURES.kukkaiPortrait).setScale(0.75);
+    this.add.image(64, 96, TEXTURES.kukkaiPortrait).setScale(0.375);
 
     // Cosa insegna + come usarlo in classe (inglese + thai, righe brevi).
     const lines = [

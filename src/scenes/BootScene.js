@@ -79,23 +79,26 @@ export default class BootScene extends Phaser.Scene {
     // (felice/preoccupata/spaventata; se una manca, ripiega sulla felice),
     // e anche CAPTAIN ha il suo medaglione. Va fatto PRIMA dei segnaposto:
     // se la texture esiste già, il disegno generato viene saltato.
+    // NITIDEZZA: il medaglione è a RISOLUZIONE PIENA della foto (240x240) e in
+    // giro per il gioco viene mostrato a scala dimezzata — così sul telefono la
+    // foto resta nitida invece di essere prima rimpicciolita e poi ringrandita.
     const makeMedallion = (destKey, srcKey) => {
       if (this.textures.exists(destKey) || !this.textures.exists(srcKey)) return;
       const src = this.textures.get(srcKey).getSourceImage();
-      const canvas = this.textures.createCanvas(destKey, 120, 120);
+      const canvas = this.textures.createCanvas(destKey, 240, 240);
       const ctx = canvas.getContext();
       ctx.save();
       ctx.beginPath();
-      ctx.arc(60, 60, 59, 0, Math.PI * 2);
+      ctx.arc(120, 120, 118, 0, Math.PI * 2);
       ctx.closePath();
       ctx.clip();
       // "Cover": prendo il quadrato col viso dalla foto (240x300 -> fascia y 25..265).
-      ctx.drawImage(src, 0, 25, 240, 240, 0, 0, 120, 120);
+      ctx.drawImage(src, 0, 25, 240, 240, 0, 0, 240, 240);
       ctx.restore();
       // Bordo dorato sottile: lo stile "medaglione" del gioco.
       ctx.beginPath();
-      ctx.arc(60, 60, 57.5, 0, Math.PI * 2);
-      ctx.lineWidth = 3;
+      ctx.arc(120, 120, 115, 0, Math.PI * 2);
+      ctx.lineWidth = 6;
       ctx.strokeStyle = '#f2c14e';
       ctx.stroke();
       canvas.refresh();

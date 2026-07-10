@@ -40,7 +40,7 @@ export default class QuizScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     // Kukkai felice che fa da esaminatrice gentile.
-    this.add.image(64, 120, TEXTURES.kukkaiPortrait).setScale(0.7);
+    this.add.image(64, 120, TEXTURES.kukkaiPortrait).setScale(0.35);
 
     const vocab = new VocabularyManager();
     this.words = vocab.getWordsForLevel(this.levelNumber);

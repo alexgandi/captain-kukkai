@@ -46,7 +46,7 @@ export default class MarketScene extends Phaser.Scene {
       .setDepth(6);
 
     // Kukkai (felice) in un angolo, che "chiama" le parole.
-    this.add.image(64, H - 90, TEXTURES.kukkaiPortrait).setScale(0.85).setDepth(6);
+    this.add.image(64, H - 90, TEXTURES.kukkaiPortrait).setScale(0.425).setDepth(6);
 
     // --- HUD: punteggio + tempo ---
     this.score = 0;

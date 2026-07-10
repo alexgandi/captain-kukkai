@@ -31,7 +31,7 @@ export default class IntroScene extends Phaser.Scene {
     this.add.image(150, floorTop - 30, TEXTURES.captain);
 
     // Kukkai grande, sopra il pannello — PREOCCUPATA: è stata rapita!
-    this.add.image(GAME_WIDTH - 190, floorTop - 110, 'kukkai_worried').setScale(1.6);
+    this.add.image(GAME_WIDTH - 190, floorTop - 110, 'kukkai_worried').setScale(0.8);
 
     // --- Dialogo ---
     this.audio = new AudioManager(this);

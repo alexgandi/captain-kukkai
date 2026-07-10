@@ -31,7 +31,13 @@ const config = {
   parent: 'game',             // id del <div> nell'index.html dove va il gioco
   width: GAME_WIDTH,
   height: GAME_HEIGHT,
-  pixelArt: true,             // niente sfocatura: utile per la futura pixel-art
+  // NITIDEZZA: niente più pixelArt (ingrandiva coi bordi a blocchi). Ora le
+  // immagini vengono ingrandite con filtro morbido, e il mipmap migliora
+  // le texture RIMPICCIOLITE (es. i medaglioni-foto ad alta risoluzione).
+  render: {
+    antialias: true,
+    mipmapFilter: 'LINEAR_MIPMAP_LINEAR',
+  },
   // SCALING RESPONSIVE: il gioco resta 800x450 "dentro", ma si ADATTA a qualsiasi
   // schermo (telefono, tablet, desktop) mantenendo le proporzioni e centrandosi.
   // Così i controlli touch e la UI restano al loro posto su ogni dispositivo.
@@ -49,6 +55,18 @@ const config = {
   // La lista delle scene. La PRIMA parte per prima: BootScene prepara gli asset,
   // poi IntroScene (Kukkai), poi GameScene. Man mano aggiungeremo MenuScene, ecc.
   scene: [BootScene, MenuScene, IntroScene, MapScene, GameScene, SpaceScene, LevelCompleteScene, RescueScene, WordBookScene, PauseScene, CertificateScene, MarketScene, QuizScene, ActionScene, ParentScene, PhraseScene, AchievementsScene, WardrobeScene, AlbumScene, TeacherScene, PosterScene],
+};
+
+// TESTO NITIDO: ogni testo di Phaser viene renderizzato su un canvas interno;
+// di default a risoluzione 1, che ingrandito sui telefoni diventa sgranato.
+// Qui alziamo la risoluzione di TUTTI i testi a 2 in un colpo solo (i singoli
+// testi possono comunque chiedere una risoluzione propria nello stile).
+const origSetStyle = Phaser.GameObjects.TextStyle.prototype.setStyle;
+Phaser.GameObjects.TextStyle.prototype.setStyle = function (style, updateText, setDefaults) {
+  if (style && typeof style === 'object' && !style.resolution) {
+    style = Object.assign({}, style, { resolution: 2 });
+  }
+  return origSetStyle.call(this, style, updateText, setDefaults);
 };
 
 // Avvia il gioco.

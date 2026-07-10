@@ -34,7 +34,7 @@ export default class PhraseScene extends Phaser.Scene {
       .text(W / 2, 26, 'Build the words you hear!  🧩', { fontFamily: 'sans-serif', fontSize: '24px', color: '#2f6fed', fontStyle: 'bold', stroke: '#ffffff', strokeThickness: 4 })
       .setOrigin(0.5);
     this.add.text(W / 2, 52, 'ต่อคำที่ได้ยิน!', { fontFamily: 'sans-serif', fontSize: '15px', color: '#333333' }).setOrigin(0.5);
-    this.add.image(52, 70, TEXTURES.kukkaiPortrait).setScale(0.55);
+    this.add.image(52, 70, TEXTURES.kukkaiPortrait).setScale(0.275);
 
     this.starIcons = [];
     for (let i = 0; i < ROUNDS; i++) {

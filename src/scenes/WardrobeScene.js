@@ -26,7 +26,7 @@ export default class WardrobeScene extends Phaser.Scene {
 
     // Anteprima di Captain col costume scelto.
     const hasCapPhoto = this.textures.exists('captain_photo');
-    this.preview = this.add.image(W / 2, 110, hasCapPhoto ? 'captain_photo' : TEXTURES.captain).setScale(hasCapPhoto ? 1.0 : 1.8);
+    this.preview = this.add.image(W / 2, 110, hasCapPhoto ? 'captain_photo' : TEXTURES.captain).setScale(hasCapPhoto ? 0.5 : 1.8);
     this.previewHat = this.add.text(W / 2, 66, '', { fontSize: '30px' }).setOrigin(0.5);
     this.selected = this.progress ? this.progress.getCostume() : 'none';
     this.refreshPreview();

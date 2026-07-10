@@ -392,7 +392,7 @@ export default class SpaceScene extends Phaser.Scene {
 
     // Kukkai prigioniera (spaventata) in un raggio traente sotto al boss.
     this.kukkaiBeam = this.add.circle(bx, by + 66, 22, 0x37e0ff, 0.25).setDepth(8);
-    this.kukkaiCaptive = this.add.image(bx, by + 66, 'kukkai_scared').setScale(0.42).setDepth(9);
+    this.kukkaiCaptive = this.add.image(bx, by + 66, 'kukkai_scared').setScale(0.21).setDepth(9);
 
     // Il boss entra in scena.
     this.tweens.add({ targets: [this.boss, this.kukkaiBeam, this.kukkaiCaptive], x: `-=${bx - this.boss.homeX}`, duration: 1200, ease: 'Sine.easeOut',

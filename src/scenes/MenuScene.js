@@ -66,8 +66,8 @@ export default class MenuScene extends Phaser.Scene {
     const hasCapPhoto = this.textures.exists('captain_photo');
     this.add
       .image(W / 2 - 150, H - 74, hasCapPhoto ? 'captain_photo' : TEXTURES.captain)
-      .setScale(hasCapPhoto ? 0.9 : 1.5);
-    this.add.image(W / 2 + 150, H - 74, TEXTURES.kukkaiPortrait).setScale(1.05);
+      .setScale(hasCapPhoto ? 0.45 : 1.5);
+    this.add.image(W / 2 + 150, H - 74, TEXTURES.kukkaiPortrait).setScale(0.525);
 
     // Pulsantino Word Book (in alto a destra): rivedi le parole imparate.
     const bookBtn = this.add

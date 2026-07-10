@@ -41,7 +41,7 @@ export default class ActionScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     // Kukkai fa da maestra.
-    this.add.image(52, 70, TEXTURES.kukkaiPortrait).setScale(0.55);
+    this.add.image(52, 70, TEXTURES.kukkaiPortrait).setScale(0.275);
 
     // Stelline (una per comando).
     this.starIcons = [];
