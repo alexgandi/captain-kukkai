@@ -136,12 +136,23 @@ export default class MenuScene extends Phaser.Scene {
 
     // SIGLA cantata: parte al PRIMO tocco sul menu (i browser sbloccano l'audio
     // solo dentro un gesto). Una volta per sessione, volume gentile.
+    // DIFENSIVO per iOS: se l'audio è ancora "locked" si aspetta l'evento di
+    // sblocco di Phaser invece di suonare a vuoto; e qualsiasi errore qui non
+    // deve MAI rompere lo sblocco dell'audio del resto del gioco.
     this.input.once('pointerdown', () => {
-      if (this.cache.audio.exists('title_jingle') && !this.registry.get('jingleHeard')) {
-        this.registry.set('jingleHeard', true);
-        if (this.sound && this.sound.unlock) this.sound.unlock();
-        this.titleJingle = this.sound.add('title_jingle', { volume: 0.5 });
-        this.titleJingle.play();
+      try {
+        if (this.cache.audio.exists('title_jingle') && !this.registry.get('jingleHeard')) {
+          this.registry.set('jingleHeard', true);
+          const startJingle = () => {
+            if (!this.scene.isActive()) return; // nel frattempo siamo già nell'intro
+            this.titleJingle = this.sound.add('title_jingle', { volume: 0.5 });
+            this.titleJingle.play();
+          };
+          if (this.sound.locked) this.sound.once(Phaser.Sound.Events.UNLOCKED, startJingle);
+          else startJingle();
+        }
+      } catch (e) {
+        // La sigla è un extra: se fallisce, pazienza.
       }
     });
 

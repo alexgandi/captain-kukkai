@@ -6,7 +6,9 @@
 //    cambia mai, inutile riscaricarlo.
 //  - /audio/ e il resto (manifest, icone): "stale-while-revalidate" — risposta
 //    subito dalla cache, e intanto si aggiorna in background.
-const CACHE = 'captain-kukkai-v1';
+// La VERSIONE va alzata quando serve buttare le cache vecchie su tutti i
+// dispositivi (l'activate elimina ogni cache con nome diverso da questo).
+const CACHE = 'captain-kukkai-v2';
 
 self.addEventListener('install', (e) => {
   self.skipWaiting();

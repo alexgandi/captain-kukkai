@@ -54,6 +54,35 @@ const config = {
 // mentre impari (es. `game.scene.keys.GameScene`).
 window.game = new Phaser.Game(config);
 
+// SBLOCCO AUDIO UNIVERSALE (telefono): iOS/Android attivano l'audio SOLO dentro
+// un gesto dell'utente. Qui, a livello di DOCUMENTO, ogni tocco prova a sbloccare
+// TUTTO (audio Phaser per le voci MP3, effetti sintetici, musica) finché non ci
+// riesce — così lo sblocco non dipende da quale pulsante tocchi per primo, né
+// da eventuali errori nel codice delle scene.
+const tryUnlockAudio = () => {
+  const g = window.game;
+  if (!g || !g.registry) return;
+  try {
+    const sfx = g.registry.get('sfx');
+    if (sfx && sfx.ensureCtx) sfx.ensureCtx();
+    const music = g.registry.get('music');
+    if (music && music.ensureCtx) music.ensureCtx();
+    if (g.sound) {
+      if (g.sound.context && g.sound.context.state === 'suspended') g.sound.context.resume();
+      if (g.sound.unlock) g.sound.unlock();
+    }
+  } catch (e) {
+    // L'audio non deve MAI bloccare il gioco.
+  }
+  // Quando l'audio di Phaser risulta sbloccato, smettiamo di ascoltare.
+  if (g.sound && g.sound.locked === false) {
+    document.removeEventListener('pointerdown', tryUnlockAudio);
+    document.removeEventListener('touchend', tryUnlockAudio);
+  }
+};
+document.addEventListener('pointerdown', tryUnlockAudio);
+document.addEventListener('touchend', tryUnlockAudio);
+
 // AUDIO DOPO IL BLOCCO SCHERMO (telefono): quando blocchi/riapri il telefono o
 // cambi app, iOS/Android SOSPENDONO gli AudioContext — senza questo resume, al
 // ritorno il gioco resterebbe muto. Riattiviamo tutto appena la pagina torna visibile.

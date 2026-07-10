@@ -55,7 +55,17 @@ export default class AudioManager {
         this.currentSound.destroy();
       }
       this.currentSound = this.scene.sound.add(key);
-      this.currentSound.play();
+      if (this.scene.sound.locked) {
+        // TELEFONO: l'audio si sblocca solo dentro un gesto. Se siamo ancora
+        // "locked", la battuta parte appena Phaser emette 'unlocked' invece di
+        // andare persa (tipico: la prima frase di Kukkai dopo il Play su iOS).
+        const snd = this.currentSound;
+        this.scene.sound.once('unlocked', () => {
+          if (snd === this.currentSound && snd.manager) snd.play();
+        });
+      } else {
+        this.currentSound.play();
+      }
       return;
     }
 
