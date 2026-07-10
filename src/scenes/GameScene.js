@@ -1335,6 +1335,7 @@ export default class GameScene extends Phaser.Scene {
       if (this.progress) this.progress.addWord(word.english); // progresso di partita
       this.card.show(word);
       this.audio.speak(word.english);
+      this.player.celebrate(); // saltello di gioia: la parola è un traguardo!
 
       // Sconfitti TUTTI i nemici (tutte le parole imparate)? Compare il tempietto.
       if (this.vocab.isLevelComplete(this.levelNumber) && !this.goalRevealed) {

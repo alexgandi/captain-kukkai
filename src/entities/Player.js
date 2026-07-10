@@ -99,6 +99,33 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
       this.spawnDust(1);
     }
 
+    // SBATTE LE PALPEBRE da fermo, ogni tanto: il personaggio "è vivo".
+    const standing = onFloor && Math.abs(body.velocity.x) < 5;
+    this.blinkTimer = (this.blinkTimer ?? 1800) - delta;
+    if (this.blinkTimer <= 0 && standing && !this.isHurt) {
+      this.blinkTimer = 2400 + Math.random() * 2200;
+      this.setTexture('captain_blink');
+      this.scene.time.delayedCall(140, () => {
+        if (this.active && this.texture.key === 'captain_blink') this.setTexture('captain');
+      });
+    }
+
+    // RESPIRO da fermo + DONDOLIO nel passo (solo visivi; niente durante i
+    // tween di squash/stretch, che hanno la precedenza).
+    this.animT = (this.animT || 0) + delta;
+    if (!this.isHurt && !this.scene.tweens.isTweening(this)) {
+      if (standing) {
+        const s = Math.sin(this.animT / 320);
+        this.setScale(1 - s * 0.012, 1 + s * 0.02);
+        this.setAngle(0);
+      } else if (onFloor) {
+        this.setScale(1, 1);
+        this.setAngle(Math.sin(this.animT / 90) * 3); // waddle da cartone
+      } else {
+        this.setAngle(0);
+      }
+    }
+
     this.prevFallSpeed = body.velocity.y;
     this.wasJumpDown = jumpDown;
   }
@@ -145,10 +172,21 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
       this.play('captain_walk', true); // 'true' = non ripartire se già in corso
     } else {
       this.stop();
-      if (this.texture.key !== 'captain') this.setTexture('captain');
+      // Non sovrascrivere il fotogramma 'blink' (dura solo 140ms).
+      if (this.texture.key !== 'captain' && this.texture.key !== 'captain_blink') this.setTexture('captain');
     }
 
     this.wasOnFloor = onFloor;
+  }
+
+  // SALTELLO DI GIOIA: quando Captain impara una parola festeggia — hop verso
+  // l'alto + stretch. Piccolo rinforzo emotivo del momento educativo.
+  celebrate() {
+    if (this.isHurt) return;
+    if (this.body.blocked.down) this.body.setVelocityY(-190);
+    this.scene.tweens.killTweensOf(this);
+    this.setScale(0.85, 1.18);
+    this.scene.tweens.add({ targets: this, scaleX: 1, scaleY: 1, duration: 260, ease: 'Back.easeOut' });
   }
 
   // --- "Danno": Captain perde un cuore, lampeggia di rosso ed è invulnerabile ~1,5s. ---
@@ -168,6 +206,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     this.setTexture('captain');
     this.scene.tweens.killTweensOf(this);
     this.setScale(1, 1);
+    this.setAngle(0); // niente dondolio residuo mentre lampeggia
 
     if (opts.respawn) {
       // Ostacolo: rimetto Captain sull'ultimo terreno sicuro.

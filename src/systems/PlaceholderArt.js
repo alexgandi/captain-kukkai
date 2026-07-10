@@ -608,45 +608,87 @@ function createCaptainFrames(scene) {
   createCaptainFrame(scene, TEXTURES.captain, 'idle');
   createCaptainFrame(scene, 'captain_walk0', 'walkA');
   createCaptainFrame(scene, 'captain_walk1', 'walkB');
+  createCaptainFrame(scene, 'captain_blink', 'blink'); // occhi chiusi (sbatte le palpebre)
 }
 
+// CAPTAIN = PICCOLO ESPLORATORE: ciuffo ribelle, occhioni grandi con la luce,
+// zaino da avventura sulle spalle, fazzoletto rosso al collo, pantaloncini
+// kaki con scarponcini. Silhouette riconoscibile anche piccola.
+// Pose: 'idle' | 'walkA' | 'walkB' (passo alternato) | 'blink' (occhi chiusi).
 function createCaptainFrame(scene, key, pose) {
   const g = scene.make.graphics({ add: false });
 
-  // --- GAMBE (disegnate prima, così il corpo ne copre l'attaccatura) ---
-  // In camminata una gamba è "giù" (più lunga) e l'altra "su" (più corta): a
-  // turno, dà il passo. Da ferma sono uguali.
+  // --- GAMBE (prima di tutto: il corpo ne copre l'attaccatura) ---
+  // In camminata una gamba è "giù" (più lunga) e l'altra "su": a turno, il passo.
   let hLeft = 13;
   let hRight = 13;
   if (pose === 'walkA') { hLeft = 14; hRight = 9; }
   else if (pose === 'walkB') { hLeft = 9; hRight = 14; }
-  g.fillStyle(0x14307a, 1); // pantaloni blu scuro
+  g.fillStyle(0x9c7a45, 1); // pantaloncini kaki da esploratore
   g.fillRoundedRect(11, 45, 8, hLeft, 3);
   g.fillRoundedRect(21, 45, 8, hRight, 3);
+  g.fillStyle(0x5a3a22, 1); // scarponcini marroni in punta
+  g.fillRoundedRect(11, 45 + hLeft - 5, 8, 5, 2);
+  g.fillRoundedRect(21, 45 + hRight - 5, 8, 5, 2);
 
-  // --- CORPO (tuta blu), 3/4 rivolto a destra ---
+  // --- ZAINO (dietro al corpo, spunta a sinistra: cammina verso destra) ---
+  g.fillStyle(0xa8703f, 1);
+  g.fillRoundedRect(0, 25, 11, 20, 5);
+  g.fillStyle(0xcf9052, 1); // pattella dello zaino
+  g.fillRoundedRect(0, 25, 11, 7, 3);
+
+  // --- CORPO (maglietta blu: il colore-firma di Captain) ---
   g.fillStyle(COLORS.captain, 1);
   g.fillRoundedRect(5, 24, 30, 23, 8);
-  // Testa.
+  // Tracolla dello zaino, diagonale sul petto.
+  g.fillStyle(0x8a5533, 1);
+  g.fillTriangle(7, 27, 11, 27, 31, 44);
+  g.fillTriangle(7, 27, 31, 44, 27, 44);
+
+  // --- FAZZOLETTO ROSSO al collo (prima della testa: spunta sotto il mento) ---
+  g.fillStyle(0xe23b3b, 1);
+  g.fillTriangle(13, 25, 27, 25, 20, 33);
+
+  // --- TESTA (3/4 rivolta a destra) ---
   g.fillStyle(0xffd9a8, 1);
   g.fillCircle(19, 15, 12);
   g.fillCircle(30, 16, 2.6); // nasino verso destra
-  // Cappello (cocuzzolo + visiera a destra).
-  g.fillStyle(0x14307a, 1);
-  g.fillRoundedRect(7, 5, 26, 5, 2);
-  g.fillRoundedRect(11, -1, 18, 8, 3);
-  g.fillRoundedRect(28, 6, 12, 4, 2);
-  // Occhi verso la fronte (destra).
-  g.fillStyle(0xffffff, 1);
-  g.fillCircle(20, 15, 3.4);
-  g.fillCircle(27, 15, 3.4);
-  g.fillStyle(0x222222, 1);
-  g.fillCircle(21, 15.5, 1.8);
-  g.fillCircle(28, 15.5, 1.8);
-  // Sorriso in avanti.
+
+  // --- CIUFFO RIBELLE (capelli castani, spettinati verso l'alto) ---
+  g.fillStyle(0x4a2f1d, 1);
+  g.fillEllipse(14, 8, 18, 11); // calotta sulla parte alta/sinistra
+  g.fillTriangle(14, 5, 17, -4, 21, 4); //  ciuffi che puntano in su
+  g.fillTriangle(20, 4, 25, -3, 27, 6);
+  g.fillTriangle(8, 8, 8, 1, 14, 7);
+
+  // --- OCCHIONI grandi ed espressivi (con la lucina) ---
+  if (pose === 'blink') {
+    // Palpebre chiuse: due archetti felici.
+    g.lineStyle(2.2, 0x4a2f1d, 1);
+    g.beginPath();
+    g.arc(20, 15, 3.2, 0.15 * Math.PI, 0.85 * Math.PI, false);
+    g.strokePath();
+    g.beginPath();
+    g.arc(27.5, 15, 3.2, 0.15 * Math.PI, 0.85 * Math.PI, false);
+    g.strokePath();
+  } else {
+    g.fillStyle(0xffffff, 1);
+    g.fillCircle(20, 14.5, 4);
+    g.fillCircle(27.5, 14.5, 4);
+    g.fillStyle(0x3a2a1a, 1);
+    g.fillCircle(21, 15, 2.3);
+    g.fillCircle(28.5, 15, 2.3);
+    g.fillStyle(0xffffff, 1); // la scintilla che dà vita allo sguardo
+    g.fillCircle(21.8, 14, 0.9);
+    g.fillCircle(29.3, 14, 0.9);
+  }
+
+  // Guanciotta rosata (dietro, lato sinistro) + sorriso ben sotto il naso.
+  g.fillStyle(0xf5a08a, 0.5);
+  g.fillCircle(15, 20.5, 2.2);
   g.lineStyle(2, 0x7a3b1e, 1);
   g.beginPath();
-  g.arc(23, 19, 4, 0.05 * Math.PI, 0.75 * Math.PI, false);
+  g.arc(25, 21, 3.2, 0.15 * Math.PI, 0.85 * Math.PI, false);
   g.strokePath();
 
   g.generateTexture(key, 40, 60);
