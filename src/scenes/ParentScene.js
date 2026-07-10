@@ -132,6 +132,25 @@ export default class ParentScene extends Phaser.Scene {
       });
     }
 
+    // L'ANGOLO DELLE MAESTRE: dal report si passa alla pagina per i docenti
+    // (playbook ClassDojo: l'insegnante è il canale di distribuzione).
+    const tbtn = this.add.container(GAME_WIDTH / 2, GAME_HEIGHT - 74);
+    const tbg = this.add.graphics();
+    tbg.fillStyle(0xb0392e, 1);
+    tbg.fillRoundedRect(-125, -19, 250, 38, 11);
+    const tlabel = this.add
+      .text(0, 0, '🍎 For teachers · สำหรับคุณครู', { fontFamily: 'sans-serif', fontSize: '15px', color: '#ffffff', fontStyle: 'bold' })
+      .setOrigin(0.5);
+    tbtn.add([tbg, tlabel]);
+    tbtn.setSize(250, 38);
+    tbtn.setInteractive(new Phaser.Geom.Rectangle(-125, -19, 250, 38), Phaser.Geom.Rectangle.Contains);
+    tbtn.input.cursor = 'pointer';
+    tbtn.on('pointerdown', () => {
+      if (this.sfx) this.sfx.click();
+      this.scene.start('TeacherScene');
+    });
+    this.content.add(tbtn);
+
     this.addBackButton();
   }
 

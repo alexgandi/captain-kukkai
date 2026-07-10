@@ -153,7 +153,7 @@ export default class CertificateScene extends Phaser.Scene {
     // Footer col LINK del gioco: invisibile a schermo, compare SOLO nella foto
     // condivisa (al posto dei pulsanti). Ogni diploma condiviso porta il link.
     this.shareFooter = this.add
-      .text(W / 2, H - 38, '🎮  Play free: alexgandi.github.io/captain-kukkai', {
+      .text(W / 2, H - 38, '🎮  100% FREE • No ads  •  alexgandi.github.io/captain-kukkai', {
         fontFamily: 'sans-serif',
         fontSize: '15px',
         color: '#8a5a17',

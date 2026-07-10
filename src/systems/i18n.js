@@ -24,6 +24,7 @@ const STRINGS = {
     playAgainCert: 'Play again  ↺',
     yourDiploma: 'Your diploma!  🎓   (Space)',
     days: (n) => `🔥 ${n} ${n === 1 ? 'day' : 'days'}`,
+    freeBadge: '💚 100% Free • No Ads',
   },
   th: {
     play: '▶  เล่น',
@@ -43,6 +44,7 @@ const STRINGS = {
     playAgainCert: 'เล่นอีกครั้ง  ↺',
     yourDiploma: 'รับประกาศนียบัตร!  🎓',
     days: (n) => `🔥 ${n} วัน`,
+    freeBadge: '💚 ฟรี 100% • ไม่มีโฆษณา',
   },
 };
 

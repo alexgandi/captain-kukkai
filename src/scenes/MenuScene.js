@@ -134,6 +134,22 @@ export default class MenuScene extends Phaser.Scene {
     // Pulsante Play.
     this.createPlayButton();
 
+    // BADGE "100% Free • No Ads" sotto il Play: il posizionamento è un
+    // VANTAGGIO COMPETITIVO dichiarato (lezione Khan Academy Kids — i genitori
+    // diffidano delle app per bambini piene di acquisti e pubblicità).
+    this.add
+      .text(W / 2, H - 137, t(this, 'freeBadge'), {
+        fontFamily: 'sans-serif',
+        fontSize: '15px',
+        color: '#1d7a34',
+        fontStyle: 'bold',
+        backgroundColor: '#ffffff',
+        padding: { x: 10, y: 4 },
+      })
+      .setOrigin(0.5)
+      .setAlpha(0.95)
+      .setDepth(10);
+
     // SIGLA cantata: parte al PRIMO tocco sul menu (i browser sbloccano l'audio
     // solo dentro un gesto). Una volta per sessione, volume gentile.
     // DIFENSIVO per iOS: se l'audio è ancora "locked" si aspetta l'evento di

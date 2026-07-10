@@ -164,7 +164,40 @@ export default class WordBookScene extends Phaser.Scene {
     tile.on('pointerdown', () => {
       this.audio.speak(word.english); // risenti l'inglese
       this.tweens.add({ targets: tile, scale: 1.12, duration: 100, yoyo: true, ease: 'Sine.easeOut' });
+      this.showPosterButton(word); // UGC: "fai il poster" della parola scelta
     });
+  }
+
+  // Tocchi una parola -> compare (o si aggiorna) il pulsante POSTER in basso a
+  // destra: porta alla PosterScene per creare e condividere il proprio poster.
+  // Solo quando il quaderno è aperto dal MENU (non come pausa in partita).
+  showPosterButton(word) {
+    if (this.resumeCaller) return;
+    this.posterWord = word;
+    if (this.posterBtn) {
+      this.posterLabel.setText(`🖼️ ${word.english} poster!`);
+      this.tweens.add({ targets: this.posterBtn, scale: 1.08, duration: 110, yoyo: true });
+      return;
+    }
+    this.posterBtn = this.add.container(GAME_WIDTH - 118, GAME_HEIGHT - 30).setDepth(6);
+    const bg = this.add.graphics();
+    bg.fillStyle(0xb0392e, 1);
+    bg.fillRoundedRect(-104, -20, 208, 40, 11);
+    bg.lineStyle(3, 0xffd166, 1);
+    bg.strokeRoundedRect(-104, -20, 208, 40, 11);
+    this.posterLabel = this.add
+      .text(0, 0, `🖼️ ${word.english} poster!`, { fontFamily: 'sans-serif', fontSize: '15px', color: '#ffffff', fontStyle: 'bold' })
+      .setOrigin(0.5);
+    this.posterBtn.add([bg, this.posterLabel]);
+    this.posterBtn.setSize(208, 40);
+    this.posterBtn.setInteractive(new Phaser.Geom.Rectangle(-104, -20, 208, 40), Phaser.Geom.Rectangle.Contains);
+    this.posterBtn.input.cursor = 'pointer';
+    this.posterBtn.on('pointerdown', () => {
+      if (this.sfx) this.sfx.click();
+      this.scene.start('PosterScene', { word: this.posterWord });
+    });
+    this.posterBtn.setScale(0.2);
+    this.tweens.add({ targets: this.posterBtn, scale: 1, duration: 280, ease: 'Back.easeOut' });
   }
 
   createBackButton() {

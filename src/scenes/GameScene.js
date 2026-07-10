@@ -13,6 +13,7 @@ import { KUKKAI_LEVEL_START } from '../data/dialogues.js';
 import TouchControls from '../ui/TouchControls.js';
 import { playFx } from '../systems/playFx.js';
 import { getCostume } from '../data/costumes.js';
+import { showAchievementToasts, getAchievement } from '../systems/Achievements.js';
 import { drawGradientSky, buildJungleBackground, buildIceBackground, buildVolcanoBackground, enrichCity, enrichForest, enrichCastle, addGrassFringe, addButterflies } from '../systems/ParallaxBackground.js';
 
 // GameScene: la scena di gioco.
@@ -175,6 +176,12 @@ export default class GameScene extends Phaser.Scene {
       this.pet.on('pointerdown', () => {
         this.audio.speak(this.lastWordLearned || 'elephant');
         this.tweens.add({ targets: this.pet, y: this.pet.y - 12, duration: 140, yoyo: true, ease: 'Sine.easeOut' });
+        // 🤫 SEGRETO (stile Sprunki): 5 tocchi di fila su Mango -> MANGO D'ORO!
+        // Non c'è scritto da nessuna parte: i bambini lo scoprono e se lo raccontano.
+        const now = this.time.now;
+        this.petTaps = (this.petTaps || []).filter((tp) => now - tp < 3000);
+        this.petTaps.push(now);
+        if (this.petTaps.length >= 5 && !this.petGolden) this.activateGoldenMango();
       });
 
       // Fumetto del FIUTO (compare solo quando sente un mango vicino).
@@ -1236,6 +1243,22 @@ export default class GameScene extends Phaser.Scene {
     }
   }
 
+  // 🌟 MANGO D'ORO: l'easter egg. Mango diventa dorato per tutto il livello,
+  // fa una capriola, lascia una scia di stelline — e sblocca la medaglia
+  // SEGRETA (una volta sola). Riattivabile in ogni livello: è il giochino
+  // che i bambini si insegnano a vicenda.
+  activateGoldenMango() {
+    this.petGolden = true;
+    this.pet.setTint(0xffd700);
+    this.tweens.add({ targets: this.pet, angle: 360, duration: 550, ease: 'Cubic.easeOut', onComplete: () => this.pet.setAngle(0) });
+    if (this.sfx) this.sfx.win();
+    playFx(this, 'sfx_magicfx', 0.5);
+    this.audio.speak('mango'); // dice orgoglioso il suo nome (parola del gioco!)
+    if (this.progress && this.progress.unlockAchievement('golden_mango')) {
+      this.time.delayedCall(700, () => showAchievementToasts(this, [getAchievement('golden_mango')]));
+    }
+  }
+
   // Crea il GUARDIANO del castello + il cancello che blocca la strada.
   spawnCastleGuardian(cx, floorTop) {
     const gx = cx + 90;
@@ -1614,6 +1637,18 @@ export default class GameScene extends Phaser.Scene {
       // Fumetto e targhetta del nome seguono Mango.
       if (this.petBubble && this.petBubble.visible) this.petBubble.setPosition(this.pet.x, this.pet.y - 26);
       if (this.petNameTag && this.petNameTag.active) this.petNameTag.setPosition(this.pet.x, this.pet.y - 30);
+
+      // MANGO D'ORO: scia di stelline dorate finché dura il livello.
+      if (this.petGolden) {
+        this.petSparkleTimer = (this.petSparkleTimer || 0) - delta;
+        if (this.petSparkleTimer <= 0) {
+          this.petSparkleTimer = 170;
+          const st = this.add
+            .star(this.pet.x - 10 + Math.random() * 20, this.pet.y + Math.random() * 12, 5, 2.5, 5, 0xffd700, 0.9)
+            .setDepth(8);
+          this.tweens.add({ targets: st, y: st.y - 16, alpha: 0, scale: 0.3, duration: 620, onComplete: () => st.destroy() });
+        }
+      }
     }
     // Pattuglia + magia dei nemici ancora vivi.
     this.enemyList.forEach((enemy) => {

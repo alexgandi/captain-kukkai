@@ -25,27 +25,26 @@ export default class AchievementsScene extends Phaser.Scene {
     this.add.text(W / 2, 26, '🏅 Medals', { fontFamily: 'sans-serif', fontSize: '26px', color: '#ffd166', fontStyle: 'bold' }).setOrigin(0.5);
     this.add.text(W / 2, 54, `${unlocked} / ${ACHIEVEMENTS.length}   •   เหรียญรางวัล`, { fontFamily: 'sans-serif', fontSize: '14px', color: '#c9b8e8' }).setOrigin(0.5);
 
-    // Griglia 4 x 3.
-    const cols = 4;
-    const cw = 184;
-    const ch = 96;
+    // Griglia 5 x 3 (13 medaglie, inclusa quella SEGRETA).
+    const cols = 5;
+    const cw = 156;
     const x0 = W / 2 - ((cols - 1) / 2) * cw;
     ACHIEVEMENTS.forEach((a, i) => {
       const col = i % cols;
       const row = Math.floor(i / cols);
       const x = x0 + col * cw;
-      const y = 108 + row * (ch + 8);
+      const y = 104 + row * 92;
       const got = p && p.hasAchievement(a.id);
 
       const card = this.add.container(x, y);
       const bg = this.add.graphics();
       bg.fillStyle(got ? 0x3a2b5c : 0x2a2140, 1);
-      bg.fillRoundedRect(-86, -44, 172, 88, 12);
-      bg.lineStyle(3, got ? 0xffd166 : 0x453a5e, 1);
-      bg.strokeRoundedRect(-86, -44, 172, 88, 12);
-      const icon = this.add.text(0, -20, got ? a.icon : '🔒', { fontSize: '26px' }).setOrigin(0.5).setAlpha(got ? 1 : 0.6);
-      const title = this.add.text(0, 8, got ? a.title : '???', { fontFamily: 'sans-serif', fontSize: '15px', color: got ? '#ffffff' : '#8a7fa8', fontStyle: 'bold' }).setOrigin(0.5);
-      const desc = this.add.text(0, 28, a.desc, { fontFamily: 'sans-serif', fontSize: '11px', color: got ? '#c9b8e8' : '#6d6288', align: 'center', wordWrap: { width: 164 } }).setOrigin(0.5);
+      bg.fillRoundedRect(-74, -42, 148, 84, 11);
+      bg.lineStyle(3, got ? 0xffd166 : a.secret && !got ? 0x6a5a2e : 0x453a5e, 1);
+      bg.strokeRoundedRect(-74, -42, 148, 84, 11);
+      const icon = this.add.text(0, -19, got ? a.icon : a.secret ? '✨' : '🔒', { fontSize: '24px' }).setOrigin(0.5).setAlpha(got ? 1 : 0.6);
+      const title = this.add.text(0, 7, got ? a.title : '???', { fontFamily: 'sans-serif', fontSize: '13px', color: got ? '#ffffff' : '#8a7fa8', fontStyle: 'bold' }).setOrigin(0.5);
+      const desc = this.add.text(0, 26, a.desc, { fontFamily: 'sans-serif', fontSize: '10px', color: got ? '#c9b8e8' : '#6d6288', align: 'center', wordWrap: { width: 138 } }).setOrigin(0.5);
       card.add([bg, icon, title, desc]);
       if (got) this.tweens.add({ targets: icon, scale: 1.12, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.easeInOut', delay: i * 90 });
     });

@@ -19,6 +19,9 @@ export const ACHIEVEMENTS = [
   { id: 'hero', icon: '🦸', title: 'Hero!', desc: 'Free Teacher Kukkai', test: (p) => p.isLevelDone(8) },
   { id: 'mover', icon: '🏃', title: 'Mover', desc: 'Play the Action game', test: null },
   { id: 'builder', icon: '🧩', title: 'Phrase Builder', desc: 'Build a phrase', test: null },
+  // SEGRETA (stile Sprunki): la descrizione non svela nulla — i bambini devono
+  // scoprirla giocando (tocca Mango 5 volte di fila!) e raccontarsela.
+  { id: 'golden_mango', icon: '🌟', title: 'Golden Mango', desc: 'Secret! 🤫', test: null, secret: true },
 ];
 
 export function getAchievement(id) {
