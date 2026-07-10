@@ -46,6 +46,7 @@ export default class QuizEngine {
     this.index = 0;
     this.score = 0;
     this.combo = 0;
+    this.mangoHelpUsed = false; // l'aiuto di Mango: una volta sola per quiz
     this.buildStars();
     this.nextRound();
   }
@@ -131,6 +132,7 @@ export default class QuizEngine {
     }
     this.failedThisRound = false;
     this.locked = false;
+    this.roundFails = 0; // errori in QUESTO round (al 2° arriva l'aiuto di Mango)
     const round = this.rounds[this.index];
     this.currentTarget = round.target;
 
@@ -190,6 +192,7 @@ export default class QuizEngine {
     const tileW = n <= 3 ? 120 : 92;
     const spread = n <= 3 ? 150 : 116;
     const startX = -((n - 1) / 2) * spread;
+    this.choiceTiles = []; // riferimenti alle tessere (per l'aiuto di Mango)
     tiles.forEach((t, i) => {
       const x = startX + i * spread;
       const tile = scene.add.container(x, 22);
@@ -204,6 +207,7 @@ export default class QuizEngine {
       tile.input.cursor = 'pointer';
       tile.on('pointerdown', () => this.onChoice(tile, bg, tileW, t.correct));
       panel.add(tile);
+      this.choiceTiles.push({ tile, correct: t.correct });
     });
 
     if (speakOnStart) this.audio.speak(speakOnStart);
@@ -377,9 +381,44 @@ export default class QuizEngine {
       if (this.sfx) this.sfx.tink();
       this.failedThisRound = true;
       this.combo = 0;
+      this.roundFails = (this.roundFails || 0) + 1;
       this.scene.tweens.add({ targets: tile, x: tile.x + 8, duration: 50, yoyo: true, repeat: 3 });
       this.showTryAgain();
+      // Al SECONDO errore sullo stesso round, arriva MANGO in soccorso.
+      if (this.roundFails >= 2) this.maybeMangoHelp();
     }
+  }
+
+  // L'AIUTO DI MANGO 🥭 (solo con l'elefantino ADULTO, cioè 60+ parole imparate):
+  // una volta per quiz, dopo due errori nello stesso round, Mango entra e
+  // ELIMINA un'opzione sbagliata. Un aiuto gentile — e un motivo in più per
+  // imparare parole e farlo crescere.
+  maybeMangoHelp() {
+    if (this.mangoHelpUsed) return;
+    if (!this.progress || this.progress.getCollectedWords().length < 60) return;
+    if (!this.panel || !this.choiceTiles) return;
+    const wrongs = this.choiceTiles.filter((t) => !t.correct && t.tile.input && t.tile.input.enabled);
+    if (!wrongs.length) return;
+    this.mangoHelpUsed = true;
+
+    // Spegne la tessera sbagliata.
+    const victim = wrongs[0];
+    victim.tile.disableInteractive();
+    this.scene.tweens.add({ targets: victim.tile, alpha: 0.15, duration: 350 });
+
+    // Mango entra di corsa, aiuta e sparisce.
+    const helper = this.scene.add.container(-GAME_WIDTH / 2 + 78, 40);
+    const img = this.scene.add.image(0, 0, 'elephant_pet').setScale(1.15);
+    const label = this.scene.add
+      .text(0, 32, 'Mango helps! 🥭', { fontFamily: 'sans-serif', fontSize: '13px', color: '#ffd166', fontStyle: 'bold', stroke: '#1a1a2e', strokeThickness: 3 })
+      .setOrigin(0.5);
+    helper.add([img, label]);
+    this.panel.add(helper);
+    helper.setScale(0.2);
+    this.scene.tweens.add({ targets: helper, scale: 1, duration: 300, ease: 'Back.easeOut' });
+    this.scene.tweens.add({ targets: img, y: -6, duration: 200, yoyo: true, repeat: 3, ease: 'Sine.easeInOut' }); // saltella
+    this.scene.tweens.add({ targets: helper, alpha: 0, delay: 2500, duration: 400, onComplete: () => helper.destroy() });
+    if (this.sfx) this.sfx.win();
   }
 
   roundSolved() {

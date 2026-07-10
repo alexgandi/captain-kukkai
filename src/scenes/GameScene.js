@@ -155,16 +155,37 @@ export default class GameScene extends Phaser.Scene {
       this.goldHat = this.add.image(this.player.x, this.player.y - 38, 'gold_hat').setDepth(11);
     }
 
-    // COMPAGNO: un elefantino che segue Captain e CRESCE con le parole imparate.
-    // Cucciolo all'inizio, giovane a 30 parole, adulto a 60: un premio visibile
-    // che accompagna i progressi del bambino di livello in livello.
+    // COMPAGNO: MANGO 🥭, l'elefantino che segue Captain e CRESCE con le parole
+    // imparate (cucciolo -> giovane a 30 -> adulto a 60). E più cresce, più AIUTA:
+    //  - sempre:            toccalo e ripete l'ultima parola imparata
+    //  - da giovane (30+):  FIUTA i manghi dorati nascosti (si agita se sei vicino)
+    //  - da adulto (60+):   nel quiz elimina un'opzione sbagliata (vedi QuizEngine)
     if (this.progress) {
       const learned = this.progress.getCollectedWords().length;
-      this.petScale = learned >= 60 ? 1.35 : learned >= 30 ? 1.0 : 0.62;
+      this.petStage = learned >= 60 ? 'adult' : learned >= 30 ? 'young' : 'cub';
+      this.petScale = this.petStage === 'adult' ? 1.35 : this.petStage === 'young' ? 1.0 : 0.62;
       this.pet = this.add
         .image(this.player.x - 44, this.player.y + 6, 'elephant_pet')
         .setScale(this.petScale)
         .setDepth(9);
+
+      // TAP su Mango: ripete l'ultima parola imparata (compagno di pronuncia).
+      // Prima di impararne una, dice la SUA parola: "elephant"!
+      this.pet.setInteractive({ useHandCursor: true });
+      this.pet.on('pointerdown', () => {
+        this.audio.speak(this.lastWordLearned || 'elephant');
+        this.tweens.add({ targets: this.pet, y: this.pet.y - 12, duration: 140, yoyo: true, ease: 'Sine.easeOut' });
+      });
+
+      // Fumetto del FIUTO (compare solo quando sente un mango vicino).
+      this.petBubble = this.add.text(this.pet.x, this.pet.y - 26, '🥭❗', { fontSize: '15px' }).setOrigin(0.5).setDepth(10).setVisible(false);
+
+      // Targhetta col NOME all'inizio del livello: Mango si presenta.
+      this.petNameTag = this.add
+        .text(this.pet.x, this.pet.y - 32, 'Mango', { fontFamily: 'sans-serif', fontSize: '13px', color: '#ffffff', fontStyle: 'bold', stroke: '#1a1a2e', strokeThickness: 3 })
+        .setOrigin(0.5)
+        .setDepth(10);
+      this.tweens.add({ targets: this.petNameTag, alpha: 0, delay: 2800, duration: 500, onComplete: () => this.petNameTag.destroy() });
     }
 
     // COSTUME scelto nel Guardaroba: un cappellino (emoji) sopra la testa di
@@ -738,6 +759,7 @@ export default class GameScene extends Phaser.Scene {
   // bisogna SALIRE e saltare per prenderli. Contati nell'HUD e salvati (record).
   buildMangoes(level) {
     this.mangoesCollected = 0;
+    this.mangoList = []; // riferimenti vivi: servono al FIUTO di Mango l'elefantino
     const plats = (level.platforms || []).slice().sort((a, b) => a.x - b.x);
     if (plats.length < 3) return; // (non succede: ogni livello ha molte piattaforme)
 
@@ -756,6 +778,7 @@ export default class GameScene extends Phaser.Scene {
       const halo = this.add.circle(x, y, 16, 0xffd166, 0.28).setDepth(5);
       const mango = this.add.text(x, y, '🥭', { fontSize: '24px' }).setOrigin(0.5).setDepth(6);
       this.physics.add.existing(mango, true);
+      this.mangoList.push(mango);
       this.tweens.add({ targets: [mango, halo], y: y - 8, duration: 800, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
 
       this.physics.add.overlap(this.player, mango, () => {
@@ -1336,6 +1359,7 @@ export default class GameScene extends Phaser.Scene {
       this.card.show(word);
       this.audio.speak(word.english);
       this.player.celebrate(); // saltello di gioia: la parola è un traguardo!
+      this.lastWordLearned = word.english; // Mango la ripete se lo tocchi
 
       // Sconfitti TUTTI i nemici (tutte le parole imparate)? Compare il tempietto.
       if (this.vocab.isLevelComplete(this.levelNumber) && !this.goalRevealed) {
@@ -1570,6 +1594,26 @@ export default class GameScene extends Phaser.Scene {
       this.pet.flipX = this.player.flipX; // guarda nella stessa direzione di Captain
       const moving = this.player.body && Math.abs(this.player.body.velocity.x) > 20;
       if (moving) this.pet.y -= Math.abs(Math.sin(time / 90)) * 3;
+
+      // FIUTA-MANGHI (da giovane in su): se un mango dorato non ancora raccolto è
+      // vicino, Mango si AGITA — saltella e mostra il fumetto 🥭❗. Un "cane da
+      // tartufo" gentile che premia chi ha imparato più parole.
+      if (this.petStage !== 'cub' && this.mangoList && this.mangoList.length) {
+        const near = this.mangoList.some((m) => m.active && Phaser.Math.Distance.Between(m.x, m.y, this.pet.x, this.pet.y) < 210);
+        if (near && !this.petExcited) {
+          this.petExcited = true;
+          this.petBubble.setVisible(true);
+          this.petHopTween = this.tweens.add({ targets: this.pet, scaleX: this.petScale * 1.12, scaleY: this.petScale * 1.12, duration: 170, yoyo: true, repeat: -1 });
+        } else if (!near && this.petExcited) {
+          this.petExcited = false;
+          this.petBubble.setVisible(false);
+          if (this.petHopTween) { this.petHopTween.stop(); this.petHopTween = null; }
+          this.pet.setScale(this.petScale);
+        }
+      }
+      // Fumetto e targhetta del nome seguono Mango.
+      if (this.petBubble && this.petBubble.visible) this.petBubble.setPosition(this.pet.x, this.pet.y - 26);
+      if (this.petNameTag && this.petNameTag.active) this.petNameTag.setPosition(this.pet.x, this.pet.y - 30);
     }
     // Pattuglia + magia dei nemici ancora vivi.
     this.enemyList.forEach((enemy) => {
