@@ -16,6 +16,7 @@ export default class ProgressManager {
     this.mistakes = {}; // { [inglese]: quante volte sbagliata } — per il RIPASSO mirato
     this.achievements = new Set(); // id delle medaglie sbloccate
     this.costume = 'none'; // il cappello/costume scelto per Captain
+    this.playerName = ''; // il nome del bambino (per il diploma)
     this.load();
   }
 
@@ -32,6 +33,7 @@ export default class ProgressManager {
           mistakes: this.mistakes,
           achievements: [...this.achievements],
           costume: this.costume,
+          playerName: this.playerName,
         })
       );
     } catch (e) {
@@ -51,6 +53,7 @@ export default class ProgressManager {
       this.mistakes = data.mistakes || {};
       (data.achievements || []).forEach((a) => this.achievements.add(a));
       this.costume = data.costume || 'none';
+      this.playerName = data.playerName || '';
     } catch (e) {
       // Salvataggio corrotto: si riparte puliti.
     }
@@ -139,6 +142,16 @@ export default class ProgressManager {
     return [...this.achievements];
   }
 
+  // --- Nome del bambino (per il diploma) ---
+  getPlayerName() {
+    return this.playerName || '';
+  }
+
+  setPlayerName(name) {
+    this.playerName = (name || '').trim().slice(0, 14); // corto: deve stare sul diploma
+    this.save();
+  }
+
   // --- Costume di Captain ---
   getCostume() {
     return this.costume || 'none';
@@ -163,5 +176,7 @@ export default class ProgressManager {
     } catch (e) {
       // niente storage: pazienza.
     }
+    // Il NOME del bambino sopravvive al "Play again": è suo, non della partita.
+    if (this.playerName) this.save();
   }
 }

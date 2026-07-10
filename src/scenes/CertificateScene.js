@@ -70,8 +70,12 @@ export default class CertificateScene extends Phaser.Scene {
         fontStyle: 'italic',
       })
       .setOrigin(0.5);
-    const name = this.add
-      .text(W / 2, 168, 'CAPTAIN', {
+    // Il NOME sul diploma: quello del bambino (se impostato), con la matita
+    // accanto per scriverlo/cambiarlo. È il cuore della condivisione: i
+    // genitori condividono il diploma COL NOME del proprio figlio.
+    const savedName = (this.progress && this.progress.getPlayerName()) || '';
+    this.nameText = this.add
+      .text(W / 2, 168, (savedName || 'CAPTAIN').toUpperCase(), {
         fontFamily: 'Georgia, serif',
         fontSize: '44px',
         color: '#2f6fed',
@@ -79,7 +83,13 @@ export default class CertificateScene extends Phaser.Scene {
       })
       .setOrigin(0.5)
       .setScale(0.2);
-    this.tweens.add({ targets: name, scale: 1, duration: 600, ease: 'Back.easeOut' });
+    this.tweens.add({ targets: this.nameText, scale: 1, duration: 600, ease: 'Back.easeOut' });
+    this.editBtn = this.add
+      .text(W / 2 + this.nameText.width / 2 + 26, 168, '✏️', { fontSize: '22px' })
+      .setOrigin(0.5)
+      .setPadding(8)
+      .setInteractive({ useHandCursor: true });
+    this.editBtn.on('pointerdown', () => this.editName());
     this.add
       .text(W / 2, 208, `learned  ${words}  English words!`, {
         fontFamily: 'Georgia, serif',
@@ -137,7 +147,77 @@ export default class CertificateScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.startConfetti();
-    this.createPlayAgainButton();
+    this.createBottomButtons();
+
+    // Footer col LINK del gioco: invisibile a schermo, compare SOLO nella foto
+    // condivisa (al posto dei pulsanti). Ogni diploma condiviso porta il link.
+    this.shareFooter = this.add
+      .text(W / 2, H - 38, '🎮  Play free: alexgandi.github.io/captain-kukkai', {
+        fontFamily: 'sans-serif',
+        fontSize: '15px',
+        color: '#8a5a17',
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5)
+      .setVisible(false);
+  }
+
+  // La matita: scrivi (o cambia) il nome del bambino sul diploma.
+  editName() {
+    const current = this.progress ? this.progress.getPlayerName() : '';
+    const typed = window.prompt('Your name?  ชื่อของหนู?', current || '');
+    if (typed === null) return; // annullato
+    if (this.progress) this.progress.setPlayerName(typed);
+    const shown = (this.progress && this.progress.getPlayerName()) || 'CAPTAIN';
+    this.nameText.setText(shown.toUpperCase());
+    this.editBtn.setX(this.scale.width / 2 + this.nameText.width / 2 + 26); // matita accanto al nuovo nome
+    this.tweens.add({ targets: this.nameText, scale: 1.15, duration: 140, yoyo: true });
+    const sfx = this.registry.get('sfx');
+    if (sfx) sfx.win();
+  }
+
+  // CONDIVIDI: scatta una "foto" del diploma (senza pulsanti, con il link) e
+  // apre il foglio di condivisione del telefono; se non c'è, scarica il PNG.
+  shareDiploma() {
+    if (this.sharing) return;
+    this.sharing = true;
+    // Nascondo i pulsanti e mostro il footer col link, poi scatto.
+    this.bottomButtons.forEach((b) => b.setVisible(false));
+    this.shareFooter.setVisible(true);
+    this.time.delayedCall(80, () => {
+      this.game.renderer.snapshot((image) => {
+        // Ripristino subito la schermata.
+        this.bottomButtons.forEach((b) => b.setVisible(true));
+        this.shareFooter.setVisible(false);
+        this.sharing = false;
+
+        const canvas = document.createElement('canvas');
+        canvas.width = image.width;
+        canvas.height = image.height;
+        canvas.getContext('2d').drawImage(image, 0, 0);
+        canvas.toBlob(async (blob) => {
+          if (!blob) return;
+          const file = new File([blob], 'captain-diploma.png', { type: 'image/png' });
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            try {
+              await navigator.share({
+                files: [file],
+                title: 'Captain & Teacher Kukkai',
+                text: 'My English diploma! 🎓 Play free: https://alexgandi.github.io/captain-kukkai/',
+              });
+            } catch (e) {
+              // condivisione annullata dall'utente: nessun problema
+            }
+          } else {
+            // Fallback desktop: scarica l'immagine.
+            const a = document.createElement('a');
+            a.href = canvas.toDataURL('image/png');
+            a.download = 'captain-diploma.png';
+            a.click();
+          }
+        }, 'image/png');
+      });
+    });
   }
 
   // Coriandoli discreti (non devono coprire il testo del diploma).
@@ -160,19 +240,27 @@ export default class CertificateScene extends Phaser.Scene {
     });
   }
 
-  createPlayAgainButton() {
-    const btn = this.add.container(GAME_WIDTH / 2, GAME_HEIGHT - 38).setDepth(10);
-    const bg = this.add.graphics();
-    bg.fillStyle(0x2f6fed, 1);
-    bg.fillRoundedRect(-130, -22, 260, 44, 12);
-    const label = this.add
-      .text(0, 0, 'Play again  ↺   (Space)', { fontFamily: 'sans-serif', fontSize: '19px', color: '#ffffff', fontStyle: 'bold' })
-      .setOrigin(0.5);
-    btn.add([bg, label]);
-    btn.setSize(260, 44);
-    btn.setInteractive(new Phaser.Geom.Rectangle(-130, -22, 260, 44), Phaser.Geom.Rectangle.Contains);
-    btn.input.cursor = 'pointer';
-    btn.on('pointerdown', () => this.playAgain());
+  // Due pulsanti in basso: CONDIVIDI il diploma (il gancio virale) e Play again.
+  createBottomButtons() {
+    const mk = (x, w, color, labelText, onClick) => {
+      const btn = this.add.container(x, GAME_HEIGHT - 38).setDepth(10);
+      const bg = this.add.graphics();
+      bg.fillStyle(color, 1);
+      bg.fillRoundedRect(-w / 2, -22, w, 44, 12);
+      const label = this.add
+        .text(0, 0, labelText, { fontFamily: 'sans-serif', fontSize: '19px', color: '#ffffff', fontStyle: 'bold' })
+        .setOrigin(0.5);
+      btn.add([bg, label]);
+      btn.setSize(w, 44);
+      btn.setInteractive(new Phaser.Geom.Rectangle(-w / 2, -22, w, 44), Phaser.Geom.Rectangle.Contains);
+      btn.input.cursor = 'pointer';
+      btn.on('pointerdown', onClick);
+      return btn;
+    };
+    this.bottomButtons = [
+      mk(GAME_WIDTH / 2 - 125, 230, 0x3fa34d, 'Share  📤', () => this.shareDiploma()),
+      mk(GAME_WIDTH / 2 + 125, 230, 0x2f6fed, 'Play again  ↺', () => this.playAgain()),
+    ];
     this.input.keyboard.once('keydown-SPACE', () => this.playAgain());
     this.input.keyboard.once('keydown-ENTER', () => this.playAgain());
   }
