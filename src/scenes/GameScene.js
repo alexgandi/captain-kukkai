@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_HEIGHT, COLORS, PLAYER, THEMES, TEXTURES, GRAVITY_Y } from '../config.js';
+import { GAME_HEIGHT, COLORS, PLAYER, THEMES, TEXTURES, GRAVITY_Y, SAFE } from '../config.js';
 import Player from '../entities/Player.js';
 import Enemy from '../entities/Enemy.js';
 import VocabularyManager from '../systems/VocabularyManager.js';
@@ -15,6 +15,7 @@ import { playFx } from '../systems/playFx.js';
 import { getCostume } from '../data/costumes.js';
 import { showAchievementToasts, getAchievement } from '../systems/Achievements.js';
 import { drawGradientSky, buildJungleBackground, buildIceBackground, buildVolcanoBackground, enrichCity, enrichForest, enrichCastle, addGrassFringe, addButterflies } from '../systems/ParallaxBackground.js';
+import { burstStars, buzz } from '../systems/UiKit.js';
 
 // GameScene: la scena di gioco.
 // STEP 7: livello lungo (letto dai dati) + camera che scorre e segue Captain.
@@ -367,7 +368,7 @@ export default class GameScene extends Phaser.Scene {
 
     // --- Pulsante WORD BOOK in alto a destra (o tasto B): rivedi le parole ---
     const bookBtn = this.add
-      .text(this.scale.width - 16, 20, '📖', { fontSize: '28px' })
+      .text(this.scale.width - SAFE.right - 16, 20, '📖', { fontSize: '28px' })
       .setOrigin(1, 0)
       .setScrollFactor(0)
       .setDepth(2000)
@@ -378,7 +379,7 @@ export default class GameScene extends Phaser.Scene {
 
     // --- Pulsante PAUSA (o tasto P): ferma tutto, riprendi o torna alla mappa ---
     const pauseBtn = this.add
-      .text(this.scale.width - 62, 20, '⏸️', { fontSize: '26px' })
+      .text(this.scale.width - SAFE.right - 62, 20, '⏸️', { fontSize: '26px' })
       .setOrigin(1, 0)
       .setScrollFactor(0)
       .setDepth(2000)
@@ -770,9 +771,10 @@ export default class GameScene extends Phaser.Scene {
     const plats = (level.platforms || []).slice().sort((a, b) => a.x - b.x);
     if (plats.length < 3) return; // (non succede: ogni livello ha molte piattaforme)
 
-    // HUD: contatore accanto ai cuori.
+    // HUD: contatore accanto ai cuori (origine al centro: il "balzo" è simmetrico).
     this.mangoHud = this.add
-      .text(120, 22, '🥭 0/3', { fontFamily: 'sans-serif', fontSize: '16px', color: '#ffd166', fontStyle: 'bold', stroke: '#1a1a2e', strokeThickness: 3 })
+      .text(SAFE.left + 145, 22, '🥭 0/3', { fontFamily: 'sans-serif', fontSize: '16px', color: '#ffd166', fontStyle: 'bold', stroke: '#1a1a2e', strokeThickness: 3 })
+      .setOrigin(0.5, 0)
       .setScrollFactor(0)
       .setDepth(2000);
 
@@ -792,7 +794,11 @@ export default class GameScene extends Phaser.Scene {
         if (!mango.active) return;
         this.mangoesCollected += 1;
         this.mangoHud.setText(`🥭 ${this.mangoesCollected}/3`);
-        if (this.sfx) this.sfx.click();
+        // Un tesoro merita più di un click: campanellino magico, vibrazione
+        // e il contatore che fa un balzo.
+        if (this.sfx) this.sfx.magic();
+        buzz(25);
+        this.tweens.add({ targets: this.mangoHud, scale: 1.35, duration: 130, yoyo: true, ease: 'Back.easeOut' });
         // Scintille dorate.
         for (let i = 0; i < 6; i++) {
           const s = this.add.star(mango.x, mango.y, 5, 3, 7, 0xffd166).setDepth(7);
@@ -1234,6 +1240,10 @@ export default class GameScene extends Phaser.Scene {
     if (comingFromAbove && !enemy.spiked) {
       // Salto in testa (solo nemici SENZA spine in testa): colpo + rimbalzo.
       playFx(this, 'sfx_stompfx', 0.5); // "boing" vero
+      // JUICE: stelline, micro-scossa della camera e vibrazione — il colpo "si sente".
+      burstStars(this, enemy.x, enemy.y - 8, { count: 8 });
+      this.cameras.main.shake(80, 0.0035);
+      buzz(20);
       this.hitEnemy(enemy, 'stomp');
       pBody.setVelocityY(PLAYER.jumpVelocity * 0.6);
     } else {
@@ -1382,6 +1392,8 @@ export default class GameScene extends Phaser.Scene {
       this.card.show(word);
       this.audio.speak(word.english);
       this.player.celebrate(); // saltello di gioia: la parola è un traguardo!
+      burstStars(this, enemy.x, enemy.y - 6, { count: 10 }); // pioggia di stelline
+      buzz(30);
       this.lastWordLearned = word.english; // Mango la ripete se lo tocchi
 
       // Sconfitti TUTTI i nemici (tutte le parole imparate)? Compare il tempietto.

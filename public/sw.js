@@ -8,7 +8,7 @@
 //    subito dalla cache, e intanto si aggiorna in background.
 // La VERSIONE va alzata quando serve buttare le cache vecchie su tutti i
 // dispositivi (l'activate elimina ogni cache con nome diverso da questo).
-const CACHE = 'captain-kukkai-v2';
+const CACHE = 'captain-kukkai-v3'; // v3: fullscreen dinamico + restyle UI
 
 self.addEventListener('install', (e) => {
   self.skipWaiting();

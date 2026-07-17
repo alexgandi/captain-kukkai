@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_WIDTH, GAME_HEIGHT } from '../config.js';
+import { GAME_WIDTH, GAME_HEIGHT, SAFE } from '../config.js';
 import VocabularyManager from '../systems/VocabularyManager.js';
 import AudioManager from '../systems/AudioManager.js';
 import VocabularyCard from '../ui/VocabularyCard.js';
@@ -98,7 +98,7 @@ export default class SpaceScene extends Phaser.Scene {
 
     // Pulsante PAUSA (o tasto P).
     const pauseBtn = this.add
-      .text(GAME_WIDTH - 16, 20, '⏸️', { fontSize: '26px' })
+      .text(GAME_WIDTH - SAFE.right - 16, 20, '⏸️', { fontSize: '26px' })
       .setOrigin(1, 0)
       .setScrollFactor(0)
       .setDepth(2000)

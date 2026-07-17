@@ -1,8 +1,10 @@
 import Phaser from 'phaser';
-import { GAME_WIDTH, GAME_HEIGHT, COLORS, TEXTURES } from '../config.js';
+import { GAME_WIDTH, GAME_HEIGHT, COLORS, TEXTURES, SAFE } from '../config.js';
 import VocabularyManager from '../systems/VocabularyManager.js';
 import AudioManager from '../systems/AudioManager.js';
 import { t, getLang, setLang } from '../systems/i18n.js';
+import { drawGradientSky, drawClouds, addGrassFringe, addButterflies } from '../systems/ParallaxBackground.js';
+import { makeButton } from '../systems/UiKit.js';
 
 // MenuScene: la schermata titolo. Primo schermo del gioco.
 // Il pulsante Play è anche il primo GESTO dell'utente: sblocca l'audio del
@@ -17,15 +19,41 @@ export default class MenuScene extends Phaser.Scene {
     const H = GAME_HEIGHT;
     this.sfx = this.registry.get('sfx');
 
-    // Sfondo: cielo + prato + qualche collina (aria da giungla).
-    this.cameras.main.setBackgroundColor(COLORS.sky);
+    // Sfondo VIVO: cielo a gradiente, sole, nuvole che scivolano, colline su due
+    // piani, erba che ondeggia e farfalle — il menu è la vetrina del gioco.
+    drawGradientSky(this, 'jungle');
+    this.add.circle(W - 250, 70, 46, 0xfff2bf, 0.5).setDepth(-20);
+    this.add.circle(W - 250, 70, 28, 0xfff8dc, 0.75).setDepth(-20);
+    drawClouds(this, W, { sf: 0, depth: -18, alpha: 0.85 });
+    // Colline lontane: una cresta bassa all'orizzonte, appena visibile dietro il prato.
+    for (let x = -60; x <= W + 60; x += 220) {
+      this.add.ellipse(x + 90, H - 78, 260, 80, 0x9fc6a8, 0.55).setDepth(-16);
+    }
     this.add.rectangle(W / 2, H - 24, W, 48, COLORS.ground);
-    for (let x = 40; x <= W; x += 200) {
+    for (let x = 40; x <= W + 160; x += 200) {
       this.add.ellipse(x, H - 48, 200, 110, 0x6fbf73);
     }
+    addGrassFringe(this, W, H - 42, [0x2f8f46, 0x3fa34d]);
+    addButterflies(this, W, H - 60);
+    // Mango passeggia sul prato avanti e indietro: il menu respira.
+    if (this.textures.exists('elephant_pet')) {
+      const pet = this.add.image(W / 2 - 40, H - 66, 'elephant_pet').setDepth(5).setScale(0.9);
+      this.tweens.add({ targets: pet, y: pet.y - 3, duration: 420, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+      this.tweens.add({
+        targets: pet,
+        x: W / 2 + 40,
+        duration: 5200,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut',
+        onYoyo: () => pet.setFlipX(true),
+        onRepeat: () => pet.setFlipX(false),
+      });
+    }
 
-    // Titolo (inglese) su due righe, colorato e con contorno.
-    this.add
+    // Titolo (inglese) su due righe, colorato, con contorno, ombra morbida e un
+    // ingresso a molla + fluttuazione continua: il "benvenuto" di un gioco vero.
+    const title1 = this.add
       .text(W / 2, 96, 'CAPTAIN', {
         fontFamily: 'sans-serif',
         fontSize: '58px',
@@ -34,8 +62,9 @@ export default class MenuScene extends Phaser.Scene {
         stroke: '#ffffff',
         strokeThickness: 7,
       })
-      .setOrigin(0.5);
-    this.add
+      .setOrigin(0.5)
+      .setShadow(0, 4, 'rgba(20,30,60,0.3)', 6);
+    const title2 = this.add
       .text(W / 2, 150, '& Teacher Kukkai', {
         fontFamily: 'sans-serif',
         fontSize: '34px',
@@ -44,7 +73,13 @@ export default class MenuScene extends Phaser.Scene {
         stroke: '#ffffff',
         strokeThickness: 5,
       })
-      .setOrigin(0.5);
+      .setOrigin(0.5)
+      .setShadow(0, 3, 'rgba(20,30,60,0.3)', 5);
+    title1.setScale(0.3).setAlpha(0);
+    title2.setScale(0.3).setAlpha(0);
+    this.tweens.add({ targets: title1, scale: 1, alpha: 1, duration: 450, ease: 'Back.easeOut' });
+    this.tweens.add({ targets: title2, scale: 1, alpha: 1, duration: 450, delay: 130, ease: 'Back.easeOut' });
+    this.tweens.add({ targets: [title1, title2], y: '-=5', duration: 1900, yoyo: true, repeat: -1, delay: 700, ease: 'Sine.easeInOut' });
     // Sottotitolo (inglese + thai).
     this.add
       .text(W / 2, 192, 'Learn English • Free the teacher!', {
@@ -61,17 +96,21 @@ export default class MenuScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
-    // Captain e Kukkai sul prato (in basso, sotto il pulsante).
+    // Captain e Kukkai sul prato (in basso, sotto il pulsante), con un dondolio
+    // leggero e sfalsato: niente è mai perfettamente immobile in un gioco vivo.
     // Se c'è la FOTO vera di Captain uso il suo medaglione, come per Kukkai.
     const hasCapPhoto = this.textures.exists('captain_photo');
-    this.add
+    const capImg = this.add
       .image(W / 2 - 150, H - 74, hasCapPhoto ? 'captain_photo' : TEXTURES.captain)
       .setScale(hasCapPhoto ? 0.45 : 1.5);
-    this.add.image(W / 2 + 150, H - 74, TEXTURES.kukkaiPortrait).setScale(0.525);
+    const kukImg = this.add.image(W / 2 + 150, H - 74, TEXTURES.kukkaiPortrait).setScale(0.525);
+    this.tweens.add({ targets: capImg, y: capImg.y - 6, angle: 2, duration: 1500, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    this.tweens.add({ targets: kukImg, y: kukImg.y - 6, angle: -2, duration: 1700, yoyo: true, repeat: -1, ease: 'Sine.easeInOut', delay: 400 });
 
     // Pulsantino Word Book (in alto a destra): rivedi le parole imparate.
+    // Tutta la fila di icone si scosta di SAFE.right sui telefoni col notch.
     const bookBtn = this.add
-      .text(W - 16, 14, '📖', { fontSize: '30px' })
+      .text(W - SAFE.right - 16, 14, '📖', { fontSize: '30px' })
       .setOrigin(1, 0)
       .setDepth(20)
       .setPadding(10) // area di tocco più grande (dita sul telefono)
@@ -83,7 +122,7 @@ export default class MenuScene extends Phaser.Scene {
 
     // Pulsantino Medagliere (accanto al Word Book): vedi le medaglie sbloccate.
     const medalBtn = this.add
-      .text(W - 62, 14, '🏅', { fontSize: '30px' })
+      .text(W - SAFE.right - 62, 14, '🏅', { fontSize: '30px' })
       .setOrigin(1, 0)
       .setDepth(20)
       .setPadding(10)
@@ -95,7 +134,7 @@ export default class MenuScene extends Phaser.Scene {
 
     // Pulsantino Guardaroba: scegli il costume di Captain.
     const wardrobeBtn = this.add
-      .text(W - 108, 14, '👕', { fontSize: '30px' })
+      .text(W - SAFE.right - 108, 14, '👕', { fontSize: '30px' })
       .setOrigin(1, 0)
       .setDepth(20)
       .setPadding(10)
@@ -107,7 +146,7 @@ export default class MenuScene extends Phaser.Scene {
 
     // Pulsantino Album degli sticker.
     const albumBtn = this.add
-      .text(W - 154, 14, '📔', { fontSize: '30px' })
+      .text(W - SAFE.right - 154, 14, '📔', { fontSize: '30px' })
       .setOrigin(1, 0)
       .setDepth(20)
       .setPadding(10)
@@ -120,7 +159,7 @@ export default class MenuScene extends Phaser.Scene {
     // Pulsantino "For grown-ups" (in basso a destra, piccolo e defilato): apre la
     // scheda dei progressi per i genitori, protetta da un cancello matematico.
     const parentBtn = this.add
-      .text(W - 12, H - 12, t(this, 'forGrownups'), { fontFamily: 'sans-serif', fontSize: '13px', color: '#ffffff', stroke: '#1a1a2e', strokeThickness: 3 })
+      .text(W - SAFE.right - 12, H - 12, t(this, 'forGrownups'), { fontFamily: 'sans-serif', fontSize: '13px', color: '#ffffff', stroke: '#1a1a2e', strokeThickness: 3 })
       .setOrigin(1, 1)
       .setDepth(20)
       .setPadding(8)
@@ -178,7 +217,7 @@ export default class MenuScene extends Phaser.Scene {
     const dayIndex = Math.floor(Date.now() / 86400000) % vocab.all.length;
     const wotd = vocab.all[dayIndex];
     this.audio = new AudioManager(this);
-    const wotdBox = this.add.container(14, 14).setDepth(20);
+    const wotdBox = this.add.container(SAFE.left + 14, 14).setDepth(20);
     const wbg = this.add.graphics();
     wbg.fillStyle(0xffffff, 0.92);
     wbg.fillRoundedRect(0, 0, 200, 58, 12);
@@ -200,7 +239,7 @@ export default class MenuScene extends Phaser.Scene {
     const progress = this.registry.get('progress');
     if (progress) {
       const { count, grew } = progress.touchStreak();
-      const pill = this.add.container(14, 80).setDepth(20);
+      const pill = this.add.container(SAFE.left + 14, 80).setDepth(20);
       const pbg = this.add.graphics();
       pbg.fillStyle(0xfff3e0, 0.94);
       pbg.fillRoundedRect(0, 0, 128, 34, 10);
@@ -240,7 +279,7 @@ export default class MenuScene extends Phaser.Scene {
     // maestre thai. Cambia SOLO menu e pulsanti; l'inglese didattico resta.
     const lang = getLang(this.registry);
     const langBtn = this.add
-      .text(12, H - 12, lang === 'th' ? '🌐 ไทย · EN' : '🌐 EN · ไทย', {
+      .text(SAFE.left + 12, H - 12, lang === 'th' ? '🌐 ไทย · EN' : '🌐 EN · ไทย', {
         fontFamily: 'sans-serif',
         fontSize: '14px',
         color: '#ffffff',
@@ -273,28 +312,6 @@ export default class MenuScene extends Phaser.Scene {
   }
 
   createPlayButton() {
-    const btn = this.add.container(GAME_WIDTH / 2, GAME_HEIGHT - 175).setDepth(10);
-    const bg = this.add.graphics();
-    bg.fillStyle(0x3fa34d, 1);
-    bg.fillRoundedRect(-110, -30, 220, 60, 14);
-    bg.lineStyle(4, 0xffffff, 1);
-    bg.strokeRoundedRect(-110, -30, 220, 60, 14);
-    const label = this.add
-      .text(0, 0, t(this, 'play'), {
-        fontFamily: 'sans-serif',
-        fontSize: '30px',
-        color: '#ffffff',
-        fontStyle: 'bold',
-      })
-      .setOrigin(0.5);
-    btn.add([bg, label]);
-    // Pulsazione leggera per invitare a premere.
-    this.tweens.add({ targets: btn, scale: 1.06, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-
-    btn.setSize(220, 60);
-    btn.setInteractive(new Phaser.Geom.Rectangle(-110, -30, 220, 60), Phaser.Geom.Rectangle.Contains);
-    btn.input.cursor = 'pointer';
-
     let started = false;
     const play = () => {
       if (started) return;
@@ -307,10 +324,17 @@ export default class MenuScene extends Phaser.Scene {
       if (music && music.ensureCtx) music.ensureCtx();
       if (this.sound && this.sound.unlock) this.sound.unlock(); // anche l'audio di Phaser (MP3 voce)
       if (this.titleJingle) this.titleJingle.stop(); // nell'intro parla Kukkai: sigla via
-      if (this.sfx) this.sfx.click();
       this.scene.start('IntroScene');
     };
-    btn.on('pointerdown', play);
+    // Pulsante "caramella" del kit UI: ombra, riflesso, animazione di pressione.
+    makeButton(this, GAME_WIDTH / 2, GAME_HEIGHT - 175, 230, 62, {
+      label: t(this, 'play'),
+      icon: '▶',
+      color: 0x3fa34d,
+      fontSize: 28,
+      pulse: true,
+      onClick: play,
+    });
     this.input.keyboard.once('keydown-SPACE', play);
     this.input.keyboard.once('keydown-ENTER', play);
   }

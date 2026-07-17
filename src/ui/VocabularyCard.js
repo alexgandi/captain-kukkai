@@ -1,4 +1,4 @@
-import { GAME_WIDTH } from '../config.js';
+import { SAFE } from '../config.js';
 
 // VocabularyCard: la carta che appare quando Captain impara una parola.
 // Mostra: icona (immagine) · thai · inglese. Piccola e in alto a SINISTRA,
@@ -18,8 +18,8 @@ export default class VocabularyCard {
     const scene = this.scene;
     const cardW = 210;
     const cardH = 150;
-    // In alto a SINISTRA (sotto i cuori).
-    const cx = cardW / 2 + 20;
+    // In alto a SINISTRA (sotto i cuori), fuori dal notch.
+    const cx = SAFE.left + cardW / 2 + 20;
     const cy = 130;
 
     const card = scene.add.container(cx, cy);

@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { SAFE } from '../config.js';
 
 // TouchControls: pulsanti a schermo per giocare su TABLET/TELEFONO (niente tastiera).
 // Compare SOLO su dispositivi touch; su desktop non disegna nulla.
@@ -46,24 +47,28 @@ export default class TouchControls {
 
     const H = scene.scale.height;
     const W = scene.scale.width;
+    // Margini safe-area: sui telefoni col notch i pulsanti si staccano dal bordo
+    // "occupato" (SL a sinistra, SR a destra), così restano sempre toccabili.
+    const SL = SAFE.left;
+    const SR = SAFE.right;
 
     // Pulsanti GRANDI e staccati dai bordi (in basso ci sono la barra-gesti di
     // iOS e gli angoli arrotondati dei telefoni: lì i tocchi si perdono).
     if (layout === 'platform') {
-      this.addButton(66, H - 70, 38, '◀', 'left');
-      this.addButton(168, H - 70, 38, '▶', 'right');
-      this.addButton(W - 66, H - 70, 42, '⬆', 'jump', 0x2f6fed);
+      this.addButton(SL + 66, H - 70, 38, '◀', 'left');
+      this.addButton(SL + 168, H - 70, 38, '▶', 'right');
+      this.addButton(W - SR - 66, H - 70, 42, '⬆', 'jump', 0x2f6fed);
       const level = opts.level || 1;
-      if (level >= 2) this.addButton(W - 170, H - 58, 30, '⚔️', 'sword', 0xb0392e);
-      if (level >= 3) this.addButton(W - 188, H - 138, 28, '✨', 'magic', 0x8e44c8);
-      if (level >= 4) this.addButton(W - 78, H - 168, 28, '🛡️', 'shield', 0x16a085);
+      if (level >= 2) this.addButton(W - SR - 170, H - 58, 30, '⚔️', 'sword', 0xb0392e);
+      if (level >= 3) this.addButton(W - SR - 188, H - 138, 28, '✨', 'magic', 0x8e44c8);
+      if (level >= 4) this.addButton(W - SR - 78, H - 168, 28, '🛡️', 'shield', 0x16a085);
     } else {
       // Spazio: pad a rombo (4 direzioni) a sinistra + fuoco a destra.
-      this.addButton(58, H - 110, 36, '◀', 'left');
-      this.addButton(180, H - 110, 36, '▶', 'right');
-      this.addButton(119, H - 172, 36, '⬆', 'up');
-      this.addButton(119, H - 52, 32, '⬇', 'down');
-      this.addButton(W - 70, H - 78, 44, '💥', 'fire', 0xb0392e);
+      this.addButton(SL + 58, H - 110, 36, '◀', 'left');
+      this.addButton(SL + 180, H - 110, 36, '▶', 'right');
+      this.addButton(SL + 119, H - 172, 36, '⬆', 'up');
+      this.addButton(SL + 119, H - 52, 32, '⬇', 'down');
+      this.addButton(W - SR - 70, H - 78, 44, '💥', 'fire', 0xb0392e);
     }
 
     // Il POLLING gira a ogni frame della scena (prima dell'update del gioco).

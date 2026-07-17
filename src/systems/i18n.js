@@ -7,7 +7,7 @@
 
 const STRINGS = {
   en: {
-    play: '▶  Play',
+    play: 'Play', // la freccia ▶ la mette il pulsante del UiKit
     wordOfDay: 'Word of the day  🔊',
     forGrownups: '👨‍👩‍👧 For grown-ups',
     startLevel: (n) => `Start level ${n}  ▶   (Space)`,
@@ -27,7 +27,7 @@ const STRINGS = {
     freeBadge: '💚 100% Free • No Ads',
   },
   th: {
-    play: '▶  เล่น',
+    play: 'เล่น',
     wordOfDay: 'คำศัพท์ประจำวัน  🔊',
     forGrownups: '👨‍👩‍👧 สำหรับผู้ปกครอง',
     startLevel: (n) => `เริ่มด่าน ${n}  ▶`,

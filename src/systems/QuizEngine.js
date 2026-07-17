@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { GAME_WIDTH } from '../config.js';
+import { burstStars, buzz } from './UiKit.js';
 
 // QuizEngine: il MOTORE del quiz, condiviso tra il fine-livello e il ripasso
 // lampo dalla mappa. Un solo posto per tutti i tipi di sfida, la difficoltà
@@ -376,6 +377,10 @@ export default class QuizEngine {
       bg.lineStyle(5, 0x3fa34d, 1);
       bg.strokeRoundedRect(-w / 2, -55, w, 110, 14);
       this.scene.tweens.add({ targets: tile, scale: 1.15, duration: 130, yoyo: true });
+      // JUICE: stelline sul punto giusto + vibrazione (il pannello sta a
+      // GAME_WIDTH/2, yBase: converto le coordinate della tessera in scena).
+      burstStars(this.scene, GAME_WIDTH / 2 + tile.x, this.yBase + tile.y, { count: 9, scrollFactor: 0 });
+      buzz(20);
       this.roundSolved();
     } else {
       if (this.sfx) this.sfx.tink();
@@ -427,6 +432,11 @@ export default class QuizEngine {
       this.combo += 1;
       this.lightStar(this.index);
       if (this.progress) this.progress.clearMistake(this.currentTarget.english);
+      // La combo SI SENTE: una notina in più a ogni risposta giusta di fila,
+      // sempre più acuta — la scaletta sonora del "sono in serie!".
+      if (this.sfx && this.combo >= 2) {
+        this.sfx.tone(380 + this.combo * 110, 0.14, { type: 'triangle', volume: 0.1, slideTo: 520 + this.combo * 110, delay: 0.12 });
+      }
       this.showCombo();
     } else if (this.progress) {
       // Sbagliata almeno una volta: entra nel ripasso mirato.

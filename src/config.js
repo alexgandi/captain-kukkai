@@ -2,8 +2,32 @@
 // La tengo separata da main.js così i numeri "magici" (dimensioni, gravità)
 // stanno tutti in un posto solo e sono facili da ritoccare.
 
-export const GAME_WIDTH = 800;
+// SCHERMO INTERO SUI TELEFONI: l'altezza logica resta fissa a 450, ma la
+// LARGHEZZA si adatta all'aspect ratio del dispositivo (i telefoni moderni sono
+// 19.5:9-21:9, ben più larghi del vecchio 16:9 = 800x450). Così Scale.FIT
+// riempie TUTTO lo schermo senza bande nere ai lati. Uso screen.width/height
+// (dimensioni fisiche, stabili) e non window (che balla con la barra indirizzi),
+// prendendo sempre il verso LANDSCAPE; il clamp evita layout stravolti.
 export const GAME_HEIGHT = 450;
+const deviceAspect = (() => {
+  try {
+    // Hook di collaudo: ?aspect=2.16 simula lo schermo di un telefono dal
+    // browser del computer (solo lettura di un numero: innocuo in produzione).
+    const forced = parseFloat(new URLSearchParams(window.location.search).get('aspect'));
+    if (forced > 0.5 && forced < 4) return forced;
+    const a = Math.max(window.screen.width, window.screen.height);
+    const b = Math.min(window.screen.width, window.screen.height);
+    return a / b;
+  } catch (e) {
+    return 16 / 9;
+  }
+})();
+export const GAME_WIDTH = Math.round(Math.min(1100, Math.max(800, GAME_HEIGHT * deviceAspect)));
+
+// SAFE AREA (notch/fotocamera): margini in pixel DI GIOCO da tenere liberi ai
+// lati. Vengono calcolati in main.js dagli env(safe-area-inset-*) del CSS e
+// vanno sommati agli ancoraggi di HUD e pulsanti attaccati ai bordi.
+export const SAFE = { left: 0, right: 0, top: 0, bottom: 0 };
 
 // Chiavi delle texture (immagini) usate dagli sprite.
 // Sono il "seam" per la grafica: per usare la vera pixel-art basterà caricare

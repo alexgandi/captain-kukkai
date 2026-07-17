@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT, TEXTURES } from '../config.js';
 import { t } from '../systems/i18n.js';
+import { makeButton } from '../systems/UiKit.js';
 
 // MapScene: la MAPPA DEL VIAGGIO. Tra un livello e l'altro mostra il percorso di
 // Captain verso Kukkai: 8 tappe (giungla -> ... -> castello -> spazio), le stelle
@@ -43,9 +44,24 @@ export default class MapScene extends Phaser.Scene {
       music.play('night');
     }
 
-    // Sfondo: carta da mappa serale.
-    this.cameras.main.setBackgroundColor(0x274156);
+    // Sfondo: sera stellata sopra la carta della mappa (via il colore piatto).
+    const skyG = this.add.graphics().setDepth(-12);
+    skyG.fillGradientStyle(0x17293f, 0x17293f, 0x2e4a63, 0x2e4a63, 1);
+    skyG.fillRect(0, 0, W, H);
+    // Stelle che brillano piano + una luna gentile.
+    for (let i = 0; i < 26; i++) {
+      const s = this.add.circle((i * 173) % W, 14 + ((i * 67) % 150), i % 3 ? 1.3 : 2, 0xfff6d8, 0.8).setDepth(-11);
+      this.tweens.add({ targets: s, alpha: 0.25, duration: 900 + (i % 5) * 400, yoyo: true, repeat: -1, delay: i * 130 });
+    }
+    const moon = this.add.circle(W - 90, 52, 20, 0xfff3c4, 0.95).setDepth(-11);
+    this.add.circle(W - 97, 46, 16, 0x2e4a63, 1).setDepth(-10); // falce (morso scuro)
+    this.tweens.add({ targets: moon, y: 56, duration: 2600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
     this.add.rectangle(W / 2, H - 60, W, 140, 0x1d3140).setDepth(-10);
+
+    // Le coordinate delle tappe sono disegnate per 800px: sugli schermi più
+    // larghi (fullscreen telefono) CENTRO tutto il sentiero.
+    const dx = Math.round((W - 800) / 2);
+    this.stops = STOPS.map((s) => ({ ...s, x: s.x + dx }));
 
     // Titolo (inglese + thai).
     this.add
@@ -63,9 +79,9 @@ export default class MapScene extends Phaser.Scene {
     // Sentiero puntinato tra le tappe.
     const g = this.add.graphics().setDepth(-5);
     g.fillStyle(0xf2d9a0, 0.8);
-    for (let i = 0; i < STOPS.length - 1; i++) {
-      const a = STOPS[i];
-      const b = STOPS[i + 1];
+    for (let i = 0; i < this.stops.length - 1; i++) {
+      const a = this.stops[i];
+      const b = this.stops[i + 1];
       const segs = 9;
       for (let s = 1; s < segs; s++) {
         const t = s / segs;
@@ -74,10 +90,10 @@ export default class MapScene extends Phaser.Scene {
     }
 
     // Le 8 tappe.
-    STOPS.forEach((stop) => this.createStop(stop));
+    this.stops.forEach((stop) => this.createStop(stop));
 
     // Kukkai prigioniera alla fine del sentiero (finché non finisci il gioco).
-    const last = STOPS[STOPS.length - 1];
+    const last = this.stops[this.stops.length - 1];
     if (!this.progress || !this.progress.isLevelDone(8)) {
       const ship = this.add.image(last.x + 26, last.y - 78, 'boss_ship').setScale(0.5).setDepth(5);
       this.tweens.add({ targets: ship, y: last.y - 86, duration: 1300, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
@@ -264,18 +280,14 @@ export default class MapScene extends Phaser.Scene {
 
   createStartButton() {
     const label = this.nextLevel === 8 ? t(this, 'blastOff') : t(this, 'startLevel', this.nextLevel);
-    const btn = this.add.container(GAME_WIDTH / 2, GAME_HEIGHT - 32).setDepth(10);
-    const bg = this.add.graphics();
-    bg.fillStyle(0x2f6fed, 1);
-    bg.fillRoundedRect(-140, -22, 280, 44, 12);
-    const txt = this.add
-      .text(0, 0, label, { fontFamily: 'sans-serif', fontSize: '19px', color: '#ffffff', fontStyle: 'bold' })
-      .setOrigin(0.5);
-    btn.add([bg, txt]);
-    btn.setSize(280, 44);
-    btn.setInteractive(new Phaser.Geom.Rectangle(-140, -22, 280, 44), Phaser.Geom.Rectangle.Contains);
-    btn.input.cursor = 'pointer';
-    btn.on('pointerdown', () => this.startLevel());
+    makeButton(this, GAME_WIDTH / 2, GAME_HEIGHT - 32, 290, 46, {
+      label,
+      color: 0x2f6fed,
+      fontSize: 19,
+      pulse: true,
+      depth: 10,
+      onClick: () => this.startLevel(),
+    });
     this.input.keyboard.once('keydown-SPACE', () => this.startLevel());
     this.input.keyboard.once('keydown-ENTER', () => this.startLevel());
   }

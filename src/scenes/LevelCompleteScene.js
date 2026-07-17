@@ -8,6 +8,7 @@ import { pickNewSticker } from '../data/stickers.js';
 import DialoguePortrait from '../ui/DialoguePortrait.js';
 import { KUKKAI_LEVEL_END } from '../data/dialogues.js';
 import { LEVEL_CONFIG, LEVEL_COUNT } from '../data/levels.js';
+import { makeButton, buzz } from '../systems/UiKit.js';
 
 // LevelCompleteScene: a fine livello Kukkai fa i complimenti, poi mostra il
 // recap di TUTTE le parole imparate nel livello (tap su una parola = risenti l'inglese).
@@ -77,6 +78,31 @@ export default class LevelCompleteScene extends Phaser.Scene {
           },
         });
       });
+
+      // 3 STELLE = trionfo: pioggia di coriandoli dorati + fanfara + vibrazione.
+      // Il livello perfetto deve SENTIRSI diverso: è ciò che spinge a rigiocare.
+      if (this.earnedStars >= 3) {
+        this.time.delayedCall(1250, () => {
+          if (sfx) sfx.win();
+          buzz(40);
+          const colors = [0xffd166, 0xffe14d, 0xfff3b0, 0xff7eb6, 0x7fe0ff];
+          this.time.addEvent({
+            delay: 90,
+            repeat: 26,
+            callback: () => {
+              const x = 20 + Math.random() * (GAME_WIDTH - 40);
+              const star = this.add.star(x, -12, 5, 4, 9, colors[Math.floor(Math.random() * colors.length)]).setDepth(400);
+              this.tweens.add({
+                targets: star,
+                y: GAME_HEIGHT + 20,
+                angle: 360,
+                duration: 2000 + Math.random() * 1200,
+                onComplete: () => star.destroy(),
+              });
+            },
+          });
+        });
+      }
     }
   }
 
@@ -310,26 +336,15 @@ export default class LevelCompleteScene extends Phaser.Scene {
   }
 
   createContinueButton() {
-    const btn = this.add.container(GAME_WIDTH / 2, GAME_HEIGHT - 34);
-    const bg = this.add.graphics();
-    bg.fillStyle(0x2f6fed, 1);
-    bg.fillRoundedRect(-120, -24, 240, 48, 12);
     // A fine castello il pulsante racconta l'inseguimento (Kukkai è stata rapita!).
-    const labelText = this.levelNumber === 7 ? 'Follow them!  🚀   (Space)' : 'Continue  ▶   (Space)';
-    const label = this.add
-      .text(0, 0, labelText, {
-        fontFamily: 'sans-serif',
-        fontSize: '20px',
-        color: '#ffffff',
-        fontStyle: 'bold',
-      })
-      .setOrigin(0.5);
-    btn.add([bg, label]);
-
-    btn.setSize(240, 48);
-    btn.setInteractive(new Phaser.Geom.Rectangle(-120, -24, 240, 48), Phaser.Geom.Rectangle.Contains);
-    btn.input.cursor = 'pointer'; // "manina" al passaggio del mouse
-    btn.on('pointerdown', () => this.onContinue());
+    const labelText = this.levelNumber === 7 ? 'Follow them!  🚀' : 'Continue  ▶';
+    makeButton(this, GAME_WIDTH / 2, GAME_HEIGHT - 34, 250, 48, {
+      label: labelText,
+      color: 0x2f6fed,
+      fontSize: 20,
+      pulse: true,
+      onClick: () => this.onContinue(),
+    });
 
     // Si può continuare anche da TASTIERA (comodo se giochi senza mouse).
     this.input.keyboard.once('keydown-SPACE', () => this.onContinue());

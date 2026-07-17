@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_WIDTH, GAME_HEIGHT, GRAVITY_Y } from './config.js';
+import { GAME_WIDTH, GAME_HEIGHT, GRAVITY_Y, SAFE } from './config.js';
 import BootScene from './scenes/BootScene.js';
 import MenuScene from './scenes/MenuScene.js';
 import IntroScene from './scenes/IntroScene.js';
@@ -57,6 +57,30 @@ const config = {
   scene: [BootScene, MenuScene, IntroScene, MapScene, GameScene, SpaceScene, LevelCompleteScene, RescueScene, WordBookScene, PauseScene, CertificateScene, MarketScene, QuizScene, ActionScene, ParentScene, PhraseScene, AchievementsScene, WardrobeScene, AlbumScene, TeacherScene, PosterScene],
 };
 
+// TRANSIZIONI MORBIDE: ogni cambio scena (scene.start) fa prima una DISSOLVENZA
+// veloce verso lo scuro, poi parte davvero; la scena nuova rientra in dissolvenza
+// (via fadeIn nelle create). Un dettaglio da "gioco vero": via gli stacchi secchi.
+// Il flag _fading evita doppie partenze se il bambino tamburella sui pulsanti.
+const origSceneStart = Phaser.Scenes.ScenePlugin.prototype.start;
+Phaser.Scenes.ScenePlugin.prototype.start = function (key, data) {
+  try {
+    const cam = this.systems.cameras && this.systems.cameras.main;
+    const sys = this.systems;
+    if (!cam || sys._fading) return this;
+    sys._fading = true;
+    cam.fadeOut(150, 20, 16, 40);
+    // setTimeout (orologio vero) e non delayedCall (orologio di gioco): nei tab
+    // in secondo piano il clock di gioco si congela e la scena non partirebbe mai.
+    setTimeout(() => {
+      sys._fading = false; // il Systems sopravvive ai restart: va sempre ripulito
+      origSceneStart.call(this, key, data);
+    }, 160);
+    return this;
+  } catch (e) {
+    return origSceneStart.call(this, key, data);
+  }
+};
+
 // TESTO NITIDO: ogni testo di Phaser viene renderizzato su un canvas interno;
 // di default a risoluzione 1, che ingrandito sui telefoni diventa sgranato.
 // Qui alziamo la risoluzione di TUTTI i testi a 2 in un colpo solo (i singoli
@@ -73,6 +97,68 @@ Phaser.GameObjects.TextStyle.prototype.setStyle = function (style, updateText, s
 // Lo salvo anche su window.game: comodo per ispezionarlo dalla console del browser
 // mentre impari (es. `game.scene.keys.GameScene`).
 window.game = new Phaser.Game(config);
+
+// SAFE AREA (notch/fotocamera): ora che il gioco riempie TUTTO lo schermo,
+// gli elementi attaccati ai bordi possono finire sotto il notch. Leggo gli
+// env(safe-area-inset-*) dalla sonda CSS e li converto in pixel DI GIOCO
+// (dipendono da quanto Scale.FIT ha ingrandito il canvas). Ricalcolo anche al
+// resize/rotazione: le scene li leggono da SAFE quando costruiscono la UI.
+const updateSafeInsets = () => {
+  try {
+    const probe = document.getElementById('safe-probe');
+    if (!probe) return;
+    const cs = getComputedStyle(probe);
+    // Quanti pixel di gioco vale un pixel CSS (con FIT: fattore unico).
+    // Prima che il canvas esista, lo stimo dalla finestra: stesso conto di FIT.
+    const scaleFactor =
+      (window.game && window.game.scale.displaySize.width / GAME_WIDTH) ||
+      Math.min(window.innerWidth / GAME_WIDTH, window.innerHeight / GAME_HEIGHT) ||
+      1;
+    SAFE.left = Math.round(parseFloat(cs.paddingLeft || '0') / scaleFactor) || 0;
+    SAFE.right = Math.round(parseFloat(cs.paddingRight || '0') / scaleFactor) || 0;
+    SAFE.top = Math.round(parseFloat(cs.paddingTop || '0') / scaleFactor) || 0;
+    SAFE.bottom = Math.round(parseFloat(cs.paddingBottom || '0') / scaleFactor) || 0;
+  } catch (e) {
+    // Senza insets si gioca comunque: al massimo un'icona finisce sotto il notch.
+  }
+};
+// La scena che ARRIVA rientra in dissolvenza (fadeIn), agganciato una volta sola
+// per tutte le scene. Escluse: Boot (è il caricamento), Pause e WordBook quando
+// fanno da overlay sopra il gioco (un fadeIn coprirebbe di nero il gioco sotto).
+const FADE_EXCLUDE = new Set(['BootScene', 'PauseScene', 'WordBookScene']);
+window.game.events.once(Phaser.Core.Events.READY, () => {
+  window.game.scene.scenes.forEach((s) => {
+    if (FADE_EXCLUDE.has(s.sys.settings.key)) return;
+    s.sys.events.on(Phaser.Scenes.Events.CREATE, () => {
+      try {
+        s.cameras.main.fadeIn(220, 20, 16, 40);
+      } catch (e) {
+        // la dissolvenza è cosmetica: mai bloccare la scena
+      }
+    });
+  });
+});
+
+updateSafeInsets(); // subito (stima), così anche la PRIMA scena ha i margini
+window.game.events.once('ready', updateSafeInsets);
+window.addEventListener('resize', () => setTimeout(updateSafeInsets, 60));
+
+// FULLSCREEN su Android: al primo tocco (gesto valido) il gioco entra a schermo
+// intero immersivo — via barra indirizzi e barra di sistema. Solo Android: iOS
+// non supporta la Fullscreen API (lì la strada è "Aggiungi a Home" / Capacitor).
+const tryFullscreen = () => {
+  document.removeEventListener('pointerdown', tryFullscreen);
+  try {
+    const isAndroid = /Android/i.test(navigator.userAgent);
+    const standalone = window.matchMedia('(display-mode: standalone)').matches;
+    if (isAndroid && !standalone && document.fullscreenEnabled && !document.fullscreenElement) {
+      document.documentElement.requestFullscreen({ navigationUI: 'hide' }).catch(() => {});
+    }
+  } catch (e) {
+    // Il fullscreen è un extra: se fallisce, il gioco resta giocabile.
+  }
+};
+document.addEventListener('pointerdown', tryFullscreen);
 
 // SBLOCCO AUDIO UNIVERSALE (telefono): iOS/Android attivano l'audio SOLO dentro
 // un gesto dell'utente. Qui, a livello di DOCUMENTO, ogni tocco prova a sbloccare

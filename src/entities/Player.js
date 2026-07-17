@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { PLAYER, TEXTURES } from '../config.js';
+import { buzz } from '../systems/UiKit.js';
 
 // Player = Captain (sprite con texture identificata da una chiave).
 // Movimento/salto con "feel" (coyote time, jump buffer, altezza variabile),
@@ -200,6 +201,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     this.lives = Math.max(0, this.lives - 1);
     this.emit('damaged', this.lives);
     if (this.sfx) this.sfx.hurt();
+    buzz(60); // colpo ricevuto: vibrazione netta (solo Android)
 
     // Azzero eventuali animazioni in corso.
     this.stop();
