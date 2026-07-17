@@ -28,15 +28,20 @@ export default class CertificateScene extends Phaser.Scene {
     const music = this.registry.get('music');
     if (music) music.play('celebration');
 
-    // Pergamena: fondo caldo + doppia cornice dorata.
+    // Pergamena: fondo caldo + doppia cornice dorata. La cornice sta nella
+    // FASCIA CENTRALE 800px: la foto condivisa è ritagliata lì, e così il
+    // diploma esce sempre intero con i suoi bordi (sui telefoni larghi il
+    // margine extra fuori cornice fa da passe-partout).
     this.cameras.main.setBackgroundColor(0xf6ecd4);
+    const FX = Math.max(0, Math.round((W - 800) / 2)); // inizio fascia 800px
+    const FW = Math.min(800, W);
     const frame = this.add.graphics();
     frame.lineStyle(6, 0xc9a13b, 1);
-    frame.strokeRoundedRect(14, 14, W - 28, H - 28, 14);
+    frame.strokeRoundedRect(FX + 14, 14, FW - 28, H - 28, 14);
     frame.lineStyle(2, 0xc9a13b, 1);
-    frame.strokeRoundedRect(26, 26, W - 52, H - 52, 10);
+    frame.strokeRoundedRect(FX + 26, 26, FW - 52, H - 52, 10);
     // Angoli decorativi.
-    [[26, 26], [W - 26, 26], [26, H - 26], [W - 26, H - 26]].forEach(([x, y]) => {
+    [[FX + 26, 26], [FX + FW - 26, 26], [FX + 26, H - 26], [FX + FW - 26, H - 26]].forEach(([x, y]) => {
       this.add.circle(x, y, 7, 0xc9a13b);
       this.add.circle(x, y, 3, 0xf6ecd4);
     });
@@ -55,10 +60,11 @@ export default class CertificateScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     // Kukkai (felice!) e Captain ai lati — medaglioni gemelli sul diploma.
-    this.add.image(86, 150, TEXTURES.kukkaiPortrait).setScale(0.45);
+    // Ancorati alla fascia centrale: devono restare dentro la foto condivisa.
+    this.add.image(W / 2 - 314, 150, TEXTURES.kukkaiPortrait).setScale(0.45);
     const hasCapPhoto = this.textures.exists('captain_photo');
     this.add
-      .image(W - 86, 150, hasCapPhoto ? 'captain_photo' : TEXTURES.captain)
+      .image(W / 2 + 314, 150, hasCapPhoto ? 'captain_photo' : TEXTURES.captain)
       .setScale(hasCapPhoto ? 0.45 : 1.5);
 
     // Il cuore del diploma.
@@ -192,10 +198,14 @@ export default class CertificateScene extends Phaser.Scene {
         this.shareFooter.setVisible(false);
         this.sharing = false;
 
+        // RITAGLIO al 16:9 centrale (800x450): sui telefoni il canvas è più
+        // largo, e un PNG panoramico verrebbe tagliato male da LINE/Facebook.
+        const cropW = Math.min(800, image.width);
+        const cropX = Math.max(0, Math.round((image.width - cropW) / 2));
         const canvas = document.createElement('canvas');
-        canvas.width = image.width;
+        canvas.width = cropW;
         canvas.height = image.height;
-        canvas.getContext('2d').drawImage(image, 0, 0);
+        canvas.getContext('2d').drawImage(image, cropX, 0, cropW, image.height, 0, 0, cropW, image.height);
         canvas.toBlob(async (blob) => {
           if (!blob) return;
           const file = new File([blob], 'captain-diploma.png', { type: 'image/png' });

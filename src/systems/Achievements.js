@@ -48,7 +48,9 @@ export function showAchievementToasts(scene, list) {
   list.forEach((a, i) => {
     scene.time.delayedCall(i * 1700, () => {
       if (sfx) sfx.win();
-      const box = scene.add.container(GAME_WIDTH / 2, -40).setDepth(1000);
+      // scrollFactor 0: il toast resta sullo SCHERMO anche nelle scene che
+      // scorrono (GameScene: senza, il Mango d'Oro festeggiava fuori camera).
+      const box = scene.add.container(GAME_WIDTH / 2, -40).setDepth(1000).setScrollFactor(0);
       const bg = scene.add.graphics();
       bg.fillStyle(0x1c1030, 0.96);
       bg.fillRoundedRect(-165, -26, 330, 52, 14);

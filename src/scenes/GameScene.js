@@ -122,7 +122,10 @@ export default class GameScene extends Phaser.Scene {
     // Superata la bandierina a metà, morire fa ripartire DA LÌ, non dall'inizio.
     this.checkpointX = null;
     this.checkpointReached = false;
-    if ((cfg.lengthMult || 1) >= 2) {
+    // Checkpoint in TUTTI i livelli dal 3 in su (prima solo nel castello):
+    // per un bambino piccolo rigiocare 4000px da capo è il momento-abbandono
+    // numero uno. L1-L2 restano senza: sono corti e insegnano il loop.
+    if (this.levelNumber >= 3) {
       // La bandierina (e il punto di respawn) va in un punto LIBERO: nessun nemico
       // entro 130px, così non rinasci addosso a un rosso che ti colpisce subito.
       const enemyXs = level.enemies.map((e) => e.x);
@@ -139,7 +142,10 @@ export default class GameScene extends Phaser.Scene {
     }
 
     // --- CAPTAIN ---
-    const startX = this.fromCheckpoint && this.checkpointX ? this.checkpointX : 100;
+    // Al castello (L7) il respawn arretra di 120px: il checkpoint cade dentro
+    // la zona di pattuglia del guardiano spinato (colpo garantito, ingiusto).
+    const respawnX = this.checkpointX ? this.checkpointX - (this.levelNumber === 7 ? 120 : 0) : 100;
+    const startX = this.fromCheckpoint && this.checkpointX ? respawnX : 100;
     this.playerStart = { x: startX, y: floorTop - PLAYER.height };
     this.player = new Player(this, this.playerStart.x, this.playerStart.y);
     this.physics.add.collider(this.player, this.solids);
@@ -937,6 +943,10 @@ export default class GameScene extends Phaser.Scene {
   // Blocco i comandi, mostro un messaggio gentile e poi riavvio la scena:
   // il generatore è deterministico, quindi ritorna lo stesso livello intatto.
   onPlayerDied() {
+    // A livello COMPLETATO (es. durante la cutscene del rapimento) la morte non
+    // vale più: senza questa guardia una freccia vagante cancellava il finale
+    // del castello e ributtava il bambino a inizio livello.
+    if (this.completing) return;
     if (this.restarting) return;
     this.restarting = true;
     this.player.body.setVelocity(0, 0);
@@ -1301,7 +1311,7 @@ export default class GameScene extends Phaser.Scene {
   announceGuardian() {
     const cx = this.scale.width / 2;
     const en = this.add
-      .text(cx, 118, 'A Guardian blocks the path! Use your magic! ✨', {
+      .text(cx, 118, 'A Guardian blocks the path! Sword or magic! ⚔️✨', {
         fontFamily: 'sans-serif',
         fontSize: '20px',
         color: '#ffffff',
@@ -1410,6 +1420,12 @@ export default class GameScene extends Phaser.Scene {
     this.goal.setVisible(true);
     this.goal.body.enable = true;
 
+    // Il momento più importante del livello (tutte le parole imparate!) merita
+    // una FANFARA: campanella magica + vittoria, lampo caldo e vibrazione.
+    playFx(this, 'sfx_magicfx', 0.6, () => this.sfx && this.sfx.win());
+    this.cameras.main.flash(250, 255, 240, 180);
+    buzz(35);
+
     // Entrata "pop" + dondolìo che lo fa notare come meta.
     const baseY = this.goal.y;
     this.goal.setScale(0);
@@ -1502,6 +1518,9 @@ export default class GameScene extends Phaser.Scene {
   // traente e vola via. Poi si passa ai dialoghi (cliffhanger) e allo spazio.
   playKidnapCutscene() {
     this.player.body.moves = false; // Captain guarda impotente
+    // INVULNERABILE durante la cutscene: arcieri/maghi ancora vivi (L7 ha
+    // parole doppie) continuerebbero a colpire un Captain immobile.
+    this.player.isHurt = true;
     if (this.music) this.music.play('boss'); // musica: arriva la minaccia
 
     const gx = this.goal.x;

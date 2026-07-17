@@ -22,7 +22,7 @@ export default class RescueScene extends Phaser.Scene {
       if (music) music.stop();
       this.jingle = this.sound.add('title_jingle', { volume: 0.6 });
       this.jingle.play();
-      this.events.once('shutdown', () => this.jingle && this.jingle.stop());
+      this.events.once('shutdown', () => this.jingle && this.jingle.destroy());
     } else if (music) {
       music.play('celebration');
     }

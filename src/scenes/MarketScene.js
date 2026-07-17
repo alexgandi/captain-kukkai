@@ -99,7 +99,8 @@ export default class MarketScene extends Phaser.Scene {
     this.audio.speak(this.target.english);
 
     // Le 3 tessere cadono da posizioni sparse, a velocità leggermente diverse.
-    const lanes = Phaser.Utils.Array.Shuffle([200, 400, 600]);
+    // Corsie CENTRATE sulla larghezza reale (sui telefoni lo schermo è >800px).
+    const lanes = Phaser.Utils.Array.Shuffle([GAME_WIDTH / 2 - 200, GAME_WIDTH / 2, GAME_WIDTH / 2 + 200]);
     options.forEach((word, i) => {
       const x = lanes[i] + (Math.random() * 60 - 30);
       const tile = this.add.container(x, -50).setDepth(4);

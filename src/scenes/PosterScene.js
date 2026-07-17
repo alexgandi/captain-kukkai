@@ -42,15 +42,19 @@ export default class PosterScene extends Phaser.Scene {
     if (this.poster) this.poster.destroy();
     this.poster = this.add.container(0, 0).setDepth(0);
 
+    // Il poster vive nella FASCIA CENTRALE 800px: la foto condivisa viene
+    // ritagliata lì, così cornice e decorazioni escono sempre intere.
+    const FX = Math.max(0, Math.round((W - 800) / 2));
+    const FW = Math.min(800, W);
     const g = this.add.graphics();
     g.fillStyle(th.sky, 1);
     g.fillRect(0, 0, W, H);
-    // Bolle decorative morbide.
+    // Bolle decorative morbide (relative alla fascia).
     g.fillStyle(th.deco, 0.18);
-    [[110, 90, 70], [700, 130, 90], [180, 360, 80], [660, 350, 60], [420, 60, 40]].forEach(([x, y, r]) => g.fillCircle(x, y, r));
+    [[110, 90, 70], [700, 130, 90], [180, 360, 80], [660, 350, 60], [420, 60, 40]].forEach(([x, y, r]) => g.fillCircle(FX + x, y, r));
     // Cornice del poster.
     g.lineStyle(6, th.frame, 1);
-    g.strokeRoundedRect(16, 16, W - 32, H - 32, 18);
+    g.strokeRoundedRect(FX + 16, 16, FW - 32, H - 32, 18);
     this.poster.add(g);
 
     // La parola: icona GRANDE, inglese, thai.
@@ -69,7 +73,7 @@ export default class PosterScene extends Phaser.Scene {
     this.poster.add(
       this.add.text(W / 2, 330, `⭐ ${name} learned this word! ⭐`, { fontFamily: 'sans-serif', fontSize: '17px', color: th.ink, fontStyle: 'bold' }).setOrigin(0.5)
     );
-    this.poster.add(this.add.image(W - 90, H - 78, 'elephant_pet').setScale(1.2));
+    this.poster.add(this.add.image(W / 2 + 310, H - 78, 'elephant_pet').setScale(1.2));
 
     // Footer col link: SEMPRE visibile (è l'artefatto condivisibile).
     this.poster.add(
@@ -136,10 +140,14 @@ export default class PosterScene extends Phaser.Scene {
         if (this.hint && this.hint.active) this.hint.setVisible(true);
         this.sharing = false;
 
+        // RITAGLIO al 16:9 centrale (800x450): come per il diploma, i social
+        // tagliano male i panorami dei telefoni larghi.
+        const cropW = Math.min(800, image.width);
+        const cropX = Math.max(0, Math.round((image.width - cropW) / 2));
         const canvas = document.createElement('canvas');
-        canvas.width = image.width;
+        canvas.width = cropW;
         canvas.height = image.height;
-        canvas.getContext('2d').drawImage(image, 0, 0);
+        canvas.getContext('2d').drawImage(image, cropX, 0, cropW, image.height, 0, 0, cropW, image.height);
         canvas.toBlob(async (blob) => {
           if (!blob) return;
           const file = new File([blob], 'my-word-poster.png', { type: 'image/png' });

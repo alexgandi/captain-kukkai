@@ -161,7 +161,12 @@ export default class WordBookScene extends Phaser.Scene {
     tile.setSize(tileW, tileH);
     tile.setInteractive(new Phaser.Geom.Rectangle(-tileW / 2, -tileH / 2, tileW, tileH), Phaser.Geom.Rectangle.Contains);
     tile.input.cursor = 'pointer';
-    tile.on('pointerdown', () => {
+    // TAP, non trascinamento: l'azione scatta al RILASCIO e solo se il dito
+    // non si è quasi mosso — altrimenti ogni scroll della griglia "parlava"
+    // una parola a caso e apriva il pulsante poster.
+    tile.on('pointerup', (pointer) => {
+      const dragged = Math.hypot(pointer.upX - pointer.downX, pointer.upY - pointer.downY) > 12;
+      if (dragged) return;
       this.audio.speak(word.english); // risenti l'inglese
       this.tweens.add({ targets: tile, scale: 1.12, duration: 100, yoyo: true, ease: 'Sine.easeOut' });
       this.showPosterButton(word); // UGC: "fai il poster" della parola scelta

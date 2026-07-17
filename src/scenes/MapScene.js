@@ -39,7 +39,9 @@ export default class MapScene extends Phaser.Scene {
     if (this.cache.audio.exists('theme_song')) {
       this.themeSound = this.sound.add('theme_song', { loop: true, volume: 0.35 });
       this.themeSound.play();
-      this.events.once('shutdown', () => this.themeSound && this.themeSound.stop());
+      // destroy(), non solo stop(): ogni visita alla mappa ne crea uno nuovo
+      // e i suoni fermati-ma-vivi si accumulano nel sound manager.
+      this.events.once('shutdown', () => this.themeSound && this.themeSound.destroy());
     } else if (music) {
       music.play('night');
     }
@@ -294,6 +296,9 @@ export default class MapScene extends Phaser.Scene {
 
   startLevel() {
     if (this.starting) return; // niente doppi avvii
+    // Col popup "rigioca/quiz" aperto, SPAZIO/INVIO non devono far partire il
+    // livello sotto (il velo blocca solo i tocchi, non la tastiera).
+    if (this.stopMenu && this.stopMenu.active) return;
     this.starting = true;
     if (this.sfx) this.sfx.click();
     if (this.nextLevel === 8) this.scene.start('SpaceScene');

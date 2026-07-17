@@ -208,21 +208,16 @@ export default class ProgressManager {
   }
 
   // Ricomincia la partita da capo (usato dal "Play again" del finale).
+  // Si azzera solo il PERCORSO (livelli, parole, stelle, manghi, errori).
+  // STICKER, MEDAGLIE e COSTUME restano: l'album si riempie in più partite
+  // ed è il motivo per rigiocare — cancellarlo sarebbe crudele. Anche nome,
+  // streak e lingua restano: sono del bambino, non della partita.
   reset() {
     this.completedLevels.clear();
     this.collectedWords.clear();
     this.stars = {};
     this.mangoes = {};
     this.mistakes = {};
-    this.achievements.clear();
-    this.stickers.clear();
-    this.costume = 'none';
-    try {
-      localStorage.removeItem(STORAGE_KEY);
-    } catch (e) {
-      // niente storage: pazienza.
-    }
-    // NOME, STREAK e LINGUA sopravvivono al "Play again": sono del bambino, non della partita.
-    if (this.playerName || this.streak || this.uiLang !== 'en') this.save();
+    this.save();
   }
 }

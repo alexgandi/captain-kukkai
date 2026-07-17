@@ -85,10 +85,23 @@ Phaser.Scenes.ScenePlugin.prototype.start = function (key, data) {
 // di default a risoluzione 1, che ingrandito sui telefoni diventa sgranato.
 // Qui alziamo la risoluzione di TUTTI i testi a 2 in un colpo solo (i singoli
 // testi possono comunque chiedere una risoluzione propria nello stile).
+// FONT DEL GIOCO: il canvas non attiva da solo i @font-face — vanno chiesti
+// esplicitamente. Partono subito (≈80KB locali): pronti ben prima del menu.
+try {
+  ['400 24px "Baloo 2"', '700 24px "Baloo 2"', '400 24px Mali', '700 24px Mali'].forEach((f) => document.fonts.load(f));
+} catch (e) {
+  // niente Font Loading API: si resta sul sans-serif di sistema
+}
+
 const origSetStyle = Phaser.GameObjects.TextStyle.prototype.setStyle;
 Phaser.GameObjects.TextStyle.prototype.setStyle = function (style, updateText, setDefaults) {
-  if (style && typeof style === 'object' && !style.resolution) {
-    style = Object.assign({}, style, { resolution: 2 });
+  if (style && typeof style === 'object') {
+    const extra = {};
+    if (!style.resolution) extra.resolution = 2;
+    // TIPOGRAFIA in un colpo solo: ogni testo 'sans-serif' del gioco diventa
+    // Baloo 2 (latino) con Mali in coda per i glifi thai.
+    if (style.fontFamily === 'sans-serif') extra.fontFamily = '"Baloo 2", "Mali", sans-serif';
+    style = Object.assign({}, style, extra);
   }
   return origSetStyle.call(this, style, updateText, setDefaults);
 };
