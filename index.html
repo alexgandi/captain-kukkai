@@ -117,7 +117,9 @@
     <!-- OFFLINE: il service worker mette in cache il gioco alla prima visita,
          così poi funziona anche senza internet (aereo, macchina, ovunque). -->
     <script>
-      if ('serviceWorker' in navigator) {
+      // MAI in sviluppo (localhost): il SW servirebbe file vecchi dalla cache
+      // mandando in tilt il dev server di Vite. Solo in produzione.
+      if ('serviceWorker' in navigator && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
         window.addEventListener('load', () => {
           navigator.serviceWorker.register('./sw.js').catch(() => {});
         });

@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { TEXTURES } from '../config.js';
 import { createPlaceholderTextures } from '../systems/PlaceholderArt.js';
 import { VOICE_LINES } from '../data/voiceLines.js';
 import ProgressManager from '../systems/ProgressManager.js';
@@ -36,11 +37,14 @@ export default class BootScene extends Phaser.Scene {
       label.setText(`Loading... ${Math.round(p * 100)}%`);
     });
 
-    // >>> Quando avrai la vera grafica, caricala qui con le chiavi di TEXTURES:
-    //   this.load.image(TEXTURES.captain, 'assets/captain.png');
-    //   this.load.image(TEXTURES.enemy, 'assets/enemy.png');
-    // Se una texture viene caricata qui, il segnaposto corrispondente non verrà
-    // generato (vince la tua immagine).
+    // >>> ARTE VERA DEI PERSONAGGI (generata con AI, in public/art/): se un
+    // file esiste, in create() viene AGGANCIATO alle chiavi di gioco e il
+    // segnaposto disegnato a mano non viene generato (vince l'immagine).
+    // Se un file manca, il loader segnala e si continua coi segnaposto.
+    this.load.image('art_captain', 'art/art_captain.png');
+    this.load.image('art_elephant', 'art/art_elephant.png');
+    this.load.image('art_spirit_house', 'art/art_spirit_house.png');
+    this.load.image('art_yaksha', 'art/art_yaksha.png');
 
     // I RITRATTI VERI (illustrazioni): in create() vengono ritagliati in
     // medaglioni CIRCOLARI (i ritratti nel gioco "fluttuano": un rettangolo
@@ -110,6 +114,23 @@ export default class BootScene extends Phaser.Scene {
       makeMedallion('kukkai_scared', this.textures.exists('kukkai_photo_scared') ? 'kukkai_photo_scared' : happySrc);
     }
     makeMedallion('captain_photo', 'captain_photo_src'); // il viso vero di Captain
+
+    // ARTE AI -> CHIAVI DI GIOCO: se un'immagine vera è stata caricata, la
+    // registro sotto le chiavi che il gioco usa. I file in public/art/ sono già
+    // alla dimensione nominale dei segnaposto (es. captain 40x60), così corpi
+    // fisici e scale esistenti non cambiano. Captain usa la STESSA immagine per
+    // tutti i fotogrammi: il movimento lo danno waddle/squash/polvere (puppet).
+    const useArt = (artKey, gameKeys) => {
+      if (!this.textures.exists(artKey)) return;
+      const img = this.textures.get(artKey).getSourceImage();
+      gameKeys.forEach((k) => {
+        if (!this.textures.exists(k)) this.textures.addImage(k, img);
+      });
+    };
+    useArt('art_captain', [TEXTURES.captain, 'captain_walk0', 'captain_walk1', 'captain_blink']);
+    useArt('art_elephant', ['elephant_pet']);
+    useArt('art_spirit_house', [TEXTURES.spiritHouse]);
+    useArt('art_yaksha', ['boss_ship']);
 
     // Genera le texture segnaposto per ciò che non è stato caricato sopra.
     createPlaceholderTextures(this);
