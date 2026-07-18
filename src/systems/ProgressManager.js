@@ -13,6 +13,7 @@ export default class ProgressManager {
     this.collectedWords = new Set(); // parole inglesi imparate in tutta la partita
     this.stars = {}; // { [livello]: 1..3 } — il MIGLIOR risultato ottenuto
     this.mangoes = {}; // { [livello]: 0..3 } — manghi dorati trovati (best)
+    this.mangoSpent = 0; // manghi SPESI al Mercato (i trovati - gli spesi = portafoglio)
     this.mistakes = {}; // { [inglese]: quante volte sbagliata } — per il RIPASSO mirato
     this.achievements = new Set(); // id delle medaglie sbloccate
     this.stickers = new Set(); // id degli sticker dell'album (uno per livello completato)
@@ -34,6 +35,7 @@ export default class ProgressManager {
           words: [...this.collectedWords],
           stars: this.stars,
           mangoes: this.mangoes,
+          mangoSpent: this.mangoSpent,
           mistakes: this.mistakes,
           achievements: [...this.achievements],
           stickers: [...this.stickers],
@@ -58,6 +60,7 @@ export default class ProgressManager {
       (data.words || []).forEach((w) => this.collectedWords.add(w));
       this.stars = data.stars || {};
       this.mangoes = data.mangoes || {};
+      this.mangoSpent = data.mangoSpent || 0;
       this.mistakes = data.mistakes || {};
       (data.achievements || []).forEach((a) => this.achievements.add(a));
       (data.stickers || []).forEach((s) => this.stickers.add(s));
@@ -113,6 +116,22 @@ export default class ProgressManager {
 
   getMangoes(level) {
     return this.mangoes[level] || 0;
+  }
+
+  // --- Economia dei manghi: trovati - spesi = portafoglio del Mercato ---
+  getMangoTotal() {
+    return Object.values(this.mangoes).reduce((s, n) => s + n, 0);
+  }
+
+  getMangoWallet() {
+    return Math.max(0, this.getMangoTotal() - this.mangoSpent);
+  }
+
+  spendMangoes(n) {
+    if (this.getMangoWallet() < n) return false;
+    this.mangoSpent += n;
+    this.save();
+    return true;
   }
 
   // --- Errori / RIPASSO MIRATO ---
@@ -217,6 +236,7 @@ export default class ProgressManager {
     this.collectedWords.clear();
     this.stars = {};
     this.mangoes = {};
+    this.mangoSpent = 0; // i manghi ripartono con la nuova partita
     this.mistakes = {};
     this.save();
   }

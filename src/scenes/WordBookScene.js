@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_WIDTH, GAME_HEIGHT } from '../config.js';
+import { GAME_WIDTH, GAME_HEIGHT, SAFE } from '../config.js';
 import AudioManager from '../systems/AudioManager.js';
 import VocabularyManager from '../systems/VocabularyManager.js';
 
@@ -184,7 +184,7 @@ export default class WordBookScene extends Phaser.Scene {
       this.tweens.add({ targets: this.posterBtn, scale: 1.08, duration: 110, yoyo: true });
       return;
     }
-    this.posterBtn = this.add.container(GAME_WIDTH - 118, GAME_HEIGHT - 30).setDepth(6);
+    this.posterBtn = this.add.container(GAME_WIDTH - SAFE.right - 118, GAME_HEIGHT - 30).setDepth(6);
     const bg = this.add.graphics();
     bg.fillStyle(0xb0392e, 1);
     bg.fillRoundedRect(-104, -20, 208, 40, 11);
@@ -206,7 +206,7 @@ export default class WordBookScene extends Phaser.Scene {
   }
 
   createBackButton() {
-    const btn = this.add.container(74, 26).setDepth(5);
+    const btn = this.add.container(SAFE.left + 74, 26).setDepth(5);
     const bg = this.add.graphics();
     bg.fillStyle(0x2f6fed, 1);
     bg.fillRoundedRect(-56, -18, 112, 36, 10);

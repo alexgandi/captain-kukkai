@@ -45,6 +45,10 @@ export default class BootScene extends Phaser.Scene {
     this.load.image('art_elephant', 'art/art_elephant.png');
     this.load.image('art_spirit_house', 'art/art_spirit_house.png');
     this.load.image('art_yaksha', 'art/art_yaksha.png');
+    // Versioni HD (4x) per i personaggi visti da vicino: il Player le usa con
+    // scala 0.25, così con lo zoom della camera restano nitidi.
+    this.load.image('art_captain_hd', 'art/art_captain_hd.png');
+    this.load.image('art_elephant_hd', 'art/art_elephant_hd.png');
 
     // I RITRATTI VERI (illustrazioni): in create() vengono ritagliati in
     // medaglioni CIRCOLARI (i ritratti nel gioco "fluttuano": un rettangolo

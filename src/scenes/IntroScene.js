@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
-import { GAME_WIDTH, GAME_HEIGHT, COLORS, TEXTURES } from '../config.js';
+import { GAME_WIDTH, GAME_HEIGHT, COLORS, TEXTURES, SAFE } from '../config.js';
 import AudioManager from '../systems/AudioManager.js';
+import { drawGradientSky, drawClouds, addGrassFringe, addVignette } from '../systems/ParallaxBackground.js';
 import DialoguePortrait from '../ui/DialoguePortrait.js';
 import { KUKKAI_INTRO } from '../data/dialogues.js';
 
@@ -19,19 +20,28 @@ export default class IntroScene extends Phaser.Scene {
     const floorH = 60;
     const floorTop = GAME_HEIGHT - floorH;
 
-    // --- Sfondo semplice (cielo + prato) per ambientare la scena ---
-    this.cameras.main.setBackgroundColor(COLORS.sky);
+    // --- Sfondo VIVO (stessi ingredienti del menu): l'apertura della storia
+    // non deve sembrare una scena di debug subito dopo un menu curato ---
+    drawGradientSky(this, 'jungle');
+    this.add.circle(GAME_WIDTH - 280, 66, 40, 0xfff2bf, 0.5).setDepth(-20);
+    this.add.circle(GAME_WIDTH - 280, 66, 24, 0xfff8dc, 0.75).setDepth(-20);
+    drawClouds(this, GAME_WIDTH, { sf: 0, depth: -18, alpha: 0.85 });
     this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT - floorH / 2, GAME_WIDTH, floorH, COLORS.ground);
     // Qualche cespuglio per un tocco di giungla.
-    for (let x = 60; x <= GAME_WIDTH; x += 200) {
+    for (let x = 60; x <= GAME_WIDTH + 160; x += 200) {
       this.add.ellipse(x, floorTop, 200, 110, 0x6fbf73);
     }
+    addGrassFringe(this, GAME_WIDTH, floorTop - 4, [0x2f8f46, 0x3fa34d]);
+    addVignette(this, { strength: 0.12 });
 
-    // Captain (immagine ferma) in piedi sul prato, rivolto a destra.
-    this.add.image(150, floorTop - 30, TEXTURES.captain);
+    // Captain (immagine ferma) in piedi sul prato, rivolto a destra, con un
+    // dondolio leggero: sta ASCOLTANDO, non è un fermo immagine.
+    const cap = this.add.image(150, floorTop - 30, TEXTURES.captain);
+    this.tweens.add({ targets: cap, y: cap.y - 5, duration: 1500, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
 
     // Kukkai grande, sopra il pannello — PREOCCUPATA: è stata rapita!
-    this.add.image(GAME_WIDTH - 190, floorTop - 110, 'kukkai_worried').setScale(0.8);
+    const kuk = this.add.image(GAME_WIDTH - 190, floorTop - 110, 'kukkai_worried').setScale(0.8);
+    this.tweens.add({ targets: kuk, y: kuk.y - 6, angle: -1.5, duration: 1700, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
 
     // --- Dialogo ---
     this.audio = new AudioManager(this);
@@ -51,7 +61,7 @@ export default class IntroScene extends Phaser.Scene {
 
     // SKIP sempre visibile (onboarding: mai trattenere chi vuole giocare).
     const skip = this.add
-      .text(GAME_WIDTH - 14, 12, 'Skip  ⏭', {
+      .text(GAME_WIDTH - SAFE.right - 14, 12, 'Skip  ⏭', {
         fontFamily: 'sans-serif',
         fontSize: '16px',
         color: '#ffffff',

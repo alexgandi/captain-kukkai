@@ -176,7 +176,7 @@ export default class QuizEngine {
       .setOrigin(0.5);
     panel.add(q);
     if (help) {
-      const sp = scene.add.text(q.width / 2 + 16, -110, '🔊', { fontSize: '24px' }).setOrigin(0.5);
+      const sp = scene.add.text(q.width / 2 + 16, -110, '🔊', { fontSize: '24px' }).setOrigin(0.5).setPadding(14);
       sp.setInteractive({ useHandCursor: true });
       sp.on('pointerdown', () => this.audio.speak(help));
       panel.add(sp);
@@ -303,7 +303,7 @@ export default class QuizEngine {
     this.panel = panel;
 
     panel.add(scene.add.text(0, -110, 'Spell the word! สะกดคำ', { fontFamily: 'sans-serif', fontSize: '21px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5));
-    const sp = scene.add.text(120, -110, '🔊', { fontSize: '24px' }).setOrigin(0.5);
+    const sp = scene.add.text(120, -110, '🔊', { fontSize: '24px' }).setOrigin(0.5).setPadding(14);
     sp.setInteractive({ useHandCursor: true });
     sp.on('pointerdown', () => this.audio.speak(target.english));
     panel.add(sp);

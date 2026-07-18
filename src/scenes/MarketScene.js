@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { t } from '../systems/i18n.js';
-import { GAME_WIDTH, GAME_HEIGHT, TEXTURES } from '../config.js';
+import { GAME_WIDTH, GAME_HEIGHT, TEXTURES, SAFE } from '../config.js';
 import VocabularyManager from '../systems/VocabularyManager.js';
 import AudioManager from '../systems/AudioManager.js';
 
@@ -52,10 +52,10 @@ export default class MarketScene extends Phaser.Scene {
     this.score = 0;
     this.timeLeft = GAME_SECONDS;
     this.scoreText = this.add
-      .text(16, 44, '⭐ 0', { fontFamily: 'sans-serif', fontSize: '22px', color: '#8a5a17', fontStyle: 'bold' })
+      .text(SAFE.left + 16, 44, '⭐ 0', { fontFamily: 'sans-serif', fontSize: '22px', color: '#8a5a17', fontStyle: 'bold' })
       .setDepth(6);
     this.timeText = this.add
-      .text(W - 16, 44, `⏱ ${GAME_SECONDS}`, { fontFamily: 'sans-serif', fontSize: '22px', color: '#8a5a17', fontStyle: 'bold' })
+      .text(W - SAFE.right - 16, 44, `⏱ ${GAME_SECONDS}`, { fontFamily: 'sans-serif', fontSize: '22px', color: '#8a5a17', fontStyle: 'bold' })
       .setOrigin(1, 0)
       .setDepth(6);
 
@@ -63,7 +63,7 @@ export default class MarketScene extends Phaser.Scene {
     this.callText = this.add
       .text(120, H - 104, '', { fontFamily: 'sans-serif', fontSize: '22px', color: '#b0392e', fontStyle: 'bold' })
       .setDepth(6);
-    const speaker = this.add.text(120, H - 74, '🔊', { fontSize: '22px' }).setDepth(6).setInteractive({ useHandCursor: true });
+    const speaker = this.add.text(120, H - 74, '🔊', { fontSize: '22px' }).setDepth(6).setPadding(14).setInteractive({ useHandCursor: true });
     speaker.on('pointerdown', () => this.target && this.audio.speak(this.target.english));
 
     // --- Parole: quelle IMPARATE (a mercato sbloccato = tutte e 94) ---

@@ -9,6 +9,7 @@ import DialoguePortrait from '../ui/DialoguePortrait.js';
 import { KUKKAI_LEVEL_END } from '../data/dialogues.js';
 import { LEVEL_CONFIG, LEVEL_COUNT } from '../data/levels.js';
 import { makeButton, buzz } from '../systems/UiKit.js';
+import { addVignette } from '../systems/ParallaxBackground.js';
 
 // LevelCompleteScene: a fine livello Kukkai fa i complimenti, poi mostra il
 // recap di TUTTE le parole imparate nel livello (tap su una parola = risenti l'inglese).
@@ -38,6 +39,7 @@ export default class LevelCompleteScene extends Phaser.Scene {
 
     // Sfondo a tema thailandese: templi dorati al tramonto.
     this.drawThaiBackdrop();
+    addVignette(this, { strength: 0.24, tint: 0xf6c96b, tintAlpha: 0.05 });
 
     // Kukkai fa i complimenti; alla fine si scopre il recap.
     // La sua ESPRESSIONE segue la storia: felice all'inizio, preoccupata da
@@ -144,6 +146,9 @@ export default class LevelCompleteScene extends Phaser.Scene {
     // Complimenti proporzionati al punteggio, poi si passa al recap.
     const sfx = this.registry.get('sfx');
     if (sfx) sfx.win();
+    // Quiz finito = la voce ha finito: torna la musica di festa sotto il recap.
+    const music = this.registry.get('music');
+    if (music) music.play('celebration');
     const msg = score >= total ? 'Perfect! ⭐' : score >= Math.ceil(total / 2) ? 'Great job!' : 'Good practice!';
     const done = this.add
       .text(GAME_WIDTH / 2, 235, msg, {

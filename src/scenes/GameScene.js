@@ -14,7 +14,7 @@ import TouchControls from '../ui/TouchControls.js';
 import { playFx } from '../systems/playFx.js';
 import { getCostume } from '../data/costumes.js';
 import { showAchievementToasts, getAchievement } from '../systems/Achievements.js';
-import { drawGradientSky, buildJungleBackground, buildIceBackground, buildVolcanoBackground, enrichCity, enrichForest, enrichCastle, addGrassFringe, addButterflies } from '../systems/ParallaxBackground.js';
+import { drawGradientSky, buildJungleBackground, buildIceBackground, buildVolcanoBackground, enrichCity, enrichForest, enrichCastle, addGrassFringe, addButterflies, addVignette } from '../systems/ParallaxBackground.js';
 import { burstStars, buzz } from '../systems/UiKit.js';
 
 // GameScene: la scena di gioco.
@@ -77,6 +77,19 @@ export default class GameScene extends Phaser.Scene {
 
     // Decorazioni di sfondo con parallasse (danno il senso dello scorrimento).
     this.addBackgroundDecor(worldWidth, floorTop);
+
+    // LUCE DI SCENA per tema: vignetta leggera di giorno, marcata negli
+    // ambienti bui, con un velo colore d'ambiente (lava, gelo, torce...).
+    const VIGNETTES = {
+      jungle: { strength: 0.13 },
+      ice: { strength: 0.16, tint: 0xbfe6ff, tintAlpha: 0.07 },
+      volcano: { strength: 0.32, tint: 0xff5a1e, tintAlpha: 0.1 },
+      night: { strength: 0.34, tint: 0x1a2a6a, tintAlpha: 0.09 },
+      city: { strength: 0.16 },
+      forest: { strength: 0.2, tint: 0x2f6d3a, tintAlpha: 0.06 },
+      castle: { strength: 0.34, tint: 0xffb45a, tintAlpha: 0.06 },
+    };
+    addVignette(this, VIGNETTES[this.envKey] || {});
 
     // Lucciole di notte (sempre) + METEO a sorpresa nei REPLAY dei livelli finiti.
     this.addWeatherAndDetails(worldWidth, floorTop);
@@ -172,8 +185,11 @@ export default class GameScene extends Phaser.Scene {
       const learned = this.progress.getCollectedWords().length;
       this.petStage = learned >= 60 ? 'adult' : learned >= 30 ? 'young' : 'cub';
       this.petScale = this.petStage === 'adult' ? 1.35 : this.petStage === 'young' ? 1.0 : 0.62;
+      // Arte HD (4x) se disponibile: stessa dimensione a schermo, molto più nitida.
+      const petHd = this.textures.exists('art_elephant_hd');
+      if (petHd) this.petScale *= 0.25;
       this.pet = this.add
-        .image(this.player.x - 44, this.player.y + 6, 'elephant_pet')
+        .image(this.player.x - 44, this.player.y + 6, petHd ? 'art_elephant_hd' : 'elephant_pet')
         .setScale(this.petScale)
         .setDepth(9);
 
@@ -318,6 +334,21 @@ export default class GameScene extends Phaser.Scene {
 
     // --- 3 MANGHI DORATI nascosti (sopra piattaforme sparse): da esploratore! ---
     this.buildMangoes(level);
+
+    // --- CONTATORE PAROLE nell'HUD: "quante ne mancano" a colpo d'occhio.
+    // Senza, il bambino arriva in fondo col tempietto invisibile e non capisce.
+    this.runWords = new Set();
+    this.wordTotal = levelWords.length;
+    this.wordHud = this.add
+      .text(SAFE.left + 232, 22, `⭐ 0/${this.wordTotal}`, { fontFamily: 'sans-serif', fontSize: '16px', color: '#ffe14d', fontStyle: 'bold', stroke: '#1a1a2e', strokeThickness: 3 })
+      .setOrigin(0.5, 0)
+      .setScrollFactor(0)
+      .setDepth(2000);
+
+    // Vicino al traguardo con nemici ancora vivi? Freccia-guida verso il più
+    // vicino + invito a cercarli (controllo leggero ogni mezzo secondo).
+    this.guideShown = false;
+    this.time.addEvent({ delay: 600, loop: true, callback: () => this.updateGoalGuide() });
 
     // --- TRAGUARDO: lo Spirit House (tempietto thai). ---
     // NASCOSTO all'inizio: compare solo quando hai sconfitto TUTTI i nemici
@@ -952,6 +983,11 @@ export default class GameScene extends Phaser.Scene {
     this.player.body.setVelocity(0, 0);
     this.player.body.moves = false; // stop ai comandi durante la transizione
 
+    // La musica allegra si ferma e tre note dispiaciute accompagnano il "Try
+    // again": la sconfitta DEVE suonare diversa dal resto (mai punitiva).
+    if (this.music) this.music.stop();
+    if (this.sfx) this.sfx.fail();
+
     // Messaggio gentile (solo inglese + thai).
     const msg = this.add
       .text(this.scale.width / 2, this.scale.height / 2, 'Try again!  ลองอีกครั้ง!', {
@@ -1406,11 +1442,55 @@ export default class GameScene extends Phaser.Scene {
       buzz(30);
       this.lastWordLearned = word.english; // Mango la ripete se lo tocchi
 
+      // Contatore parole dell'HUD (le parole doppie di L7 non contano due volte).
+      if (this.runWords && !this.runWords.has(word.english)) {
+        this.runWords.add(word.english);
+        this.wordHud.setText(`⭐ ${this.runWords.size}/${this.wordTotal}`);
+        this.tweens.add({ targets: this.wordHud, scale: 1.35, duration: 130, yoyo: true, ease: 'Back.easeOut' });
+      }
+
       // Sconfitti TUTTI i nemici (tutte le parole imparate)? Compare il tempietto.
       if (this.vocab.isLevelComplete(this.levelNumber) && !this.goalRevealed) {
         this.revealGoal();
       }
     }
+  }
+
+  // GUIDA verso l'ultimo nemico: se sei vicino al traguardo ma il tempietto
+  // non c'è ancora, una freccia indica dove tornare (e un banner lo spiega,
+  // una volta sola). Senza, il bambino gira a vuoto e molla.
+  updateGoalGuide() {
+    if (this.goalRevealed || this.completing || this.restarting || !this.player || !this.player.active) {
+      if (this.guideArrow) {
+        this.guideArrow.destroy();
+        this.guideArrow = null;
+      }
+      return;
+    }
+    const nearGoal = this.player.x > this.goal.x - 460;
+    const alive = this.enemyList.filter((e) => e.active && !e.isDefeated && !e.isGuardian);
+    if (!nearGoal || !alive.length) {
+      if (this.guideArrow) {
+        this.guideArrow.destroy();
+        this.guideArrow = null;
+      }
+      return;
+    }
+    const nearest = alive.reduce((a, b) => (Math.abs(a.x - this.player.x) < Math.abs(b.x - this.player.x) ? a : b));
+    const dir = nearest.x < this.player.x ? '⬅' : '➡';
+    if (!this.guideArrow) {
+      this.guideArrow = this.add
+        .text(this.scale.width / 2, 86, '', { fontFamily: 'sans-serif', fontSize: '26px', color: '#ffe14d', fontStyle: 'bold', stroke: '#1a1a2e', strokeThickness: 5 })
+        .setOrigin(0.5)
+        .setScrollFactor(0)
+        .setDepth(2000);
+      this.tweens.add({ targets: this.guideArrow, y: 94, duration: 480, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+      if (!this.guideShown) {
+        this.guideShown = true;
+        this.showWeaponBanner('Find the last monsters! 🔍', 'หาสัตว์ประหลาดที่เหลือ!');
+      }
+    }
+    this.guideArrow.setText(`${dir} 👾 ${alive.length}`);
   }
 
   // Il tempietto COMPARE quando hai sconfitto tutti i nemici.

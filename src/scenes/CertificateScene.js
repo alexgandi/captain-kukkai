@@ -94,7 +94,7 @@ export default class CertificateScene extends Phaser.Scene {
     this.editBtn = this.add
       .text(W / 2 + this.nameText.width / 2 + 26, 168, '✏️', { fontSize: '22px' })
       .setOrigin(0.5)
-      .setPadding(8)
+      .setPadding(14)
       .setInteractive({ useHandCursor: true });
     this.editBtn.on('pointerdown', () => this.editName());
     this.add

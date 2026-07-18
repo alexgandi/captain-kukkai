@@ -31,9 +31,9 @@ export default class WardrobeScene extends Phaser.Scene {
     this.selected = this.progress ? this.progress.getCostume() : 'none';
     this.refreshPreview();
 
-    // Griglia 4 x 2.
-    const cols = 4;
-    const cw = 176;
+    // Griglia 5 x 2 (10 costumi, compresi i due da streak).
+    const cols = 5;
+    const cw = 152;
     const x0 = W / 2 - ((cols - 1) / 2) * cw;
     this.cards = [];
     COSTUMES.forEach((c, i) => {
@@ -48,18 +48,18 @@ export default class WardrobeScene extends Phaser.Scene {
       const draw = (sel) => {
         bg.clear();
         bg.fillStyle(unlocked ? (sel ? 0x2f6fed : 0x2a4258) : 0x223140, 1);
-        bg.fillRoundedRect(-82, -42, 164, 84, 12);
+        bg.fillRoundedRect(-72, -42, 144, 84, 12);
         bg.lineStyle(3, sel ? 0xffd166 : unlocked ? 0x4a6b83 : 0x33465a, 1);
-        bg.strokeRoundedRect(-82, -42, 164, 84, 12);
+        bg.strokeRoundedRect(-72, -42, 144, 84, 12);
       };
       draw(this.selected === c.id);
       const emoji = this.add.text(0, -18, unlocked ? (c.emoji || '🧑‍🌾') : '🔒', { fontSize: '24px' }).setOrigin(0.5);
-      const name = this.add.text(0, 8, unlocked ? c.name : '???', { fontFamily: 'sans-serif', fontSize: '15px', color: unlocked ? '#ffffff' : '#7f93a6', fontStyle: 'bold' }).setOrigin(0.5);
-      const hint = this.add.text(0, 27, unlocked ? '' : c.hint, { fontFamily: 'sans-serif', fontSize: '11px', color: '#8fb0c6' }).setOrigin(0.5);
+      const name = this.add.text(0, 8, unlocked ? c.name : '???', { fontFamily: 'sans-serif', fontSize: '14px', color: unlocked ? '#ffffff' : '#7f93a6', fontStyle: 'bold' }).setOrigin(0.5);
+      const hint = this.add.text(0, 27, unlocked ? '' : c.hint, { fontFamily: 'sans-serif', fontSize: '10px', color: '#8fb0c6' }).setOrigin(0.5);
       card.add([bg, emoji, name, hint]);
-      card.setSize(164, 84);
+      card.setSize(144, 84);
       if (unlocked) {
-        card.setInteractive(new Phaser.Geom.Rectangle(-82, -42, 164, 84), Phaser.Geom.Rectangle.Contains);
+        card.setInteractive(new Phaser.Geom.Rectangle(-72, -42, 144, 84), Phaser.Geom.Rectangle.Contains);
         card.input.cursor = 'pointer';
         card.on('pointerdown', () => {
           if (this.sfx) this.sfx.click();

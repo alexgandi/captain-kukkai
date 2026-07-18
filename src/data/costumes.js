@@ -15,6 +15,10 @@ export const COSTUMES = [
   { id: 'tophat', emoji: '🎩', name: 'Fancy', hint: 'Earn 12 stars', cond: (p) => totalStars(p) >= 12 },
   { id: 'sunhat', emoji: '👒', name: 'Sunny', hint: 'Beat 6 levels', cond: (p) => p.completedLevels.size >= 6 },
   { id: 'party', emoji: '🥳', name: 'Party', hint: 'Free Teacher Kukkai', cond: (p) => p.isLevelDone(8) },
+  // COSTUMI DA STREAK: si sbloccano tornando ogni giorno — la fiammella sul
+  // menu ora PROMETTE qualcosa, non è solo un numero.
+  { id: 'flame', emoji: '🔥', name: 'On fire', hint: 'Play 3 days in a row', cond: (p) => (p.streak || 0) >= 3 },
+  { id: 'star', emoji: '🌟', name: 'Superstar', hint: 'Play 7 days in a row', cond: (p) => (p.streak || 0) >= 7 },
 ];
 
 export function getCostume(id) {

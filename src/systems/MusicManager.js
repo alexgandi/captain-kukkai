@@ -119,6 +119,22 @@ export default class MusicManager {
     return true;
   }
 
+  // DUCKING: abbassa la musica mentre parla Kukkai (in un gioco di pronuncia
+  // le PAROLE devono vincere il mix), poi risale dolcemente in `sec` secondi.
+  duck(sec = 1.4) {
+    if (!this.ctx || !this.master) return;
+    try {
+      const t = this.ctx.currentTime;
+      const g = this.master.gain;
+      g.cancelScheduledValues(t);
+      g.setValueAtTime(g.value, t);
+      g.linearRampToValueAtTime(0.22, t + 0.08);
+      g.linearRampToValueAtTime(1, t + 0.08 + sec);
+    } catch (e) {
+      // il ducking è cosmetico: mai rompere l'audio
+    }
+  }
+
   // Frequenza del grado `deg` della scala del tema (i gradi alti salgono d'ottava).
   freqOf(theme, deg) {
     const scale = theme.scale;

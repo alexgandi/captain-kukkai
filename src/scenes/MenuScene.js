@@ -3,8 +3,9 @@ import { GAME_WIDTH, GAME_HEIGHT, COLORS, TEXTURES, SAFE } from '../config.js';
 import VocabularyManager from '../systems/VocabularyManager.js';
 import AudioManager from '../systems/AudioManager.js';
 import { t, getLang, setLang } from '../systems/i18n.js';
-import { drawGradientSky, drawClouds, addGrassFringe, addButterflies } from '../systems/ParallaxBackground.js';
-import { makeButton } from '../systems/UiKit.js';
+import { drawGradientSky, drawClouds, addGrassFringe, addButterflies, addVignette } from '../systems/ParallaxBackground.js';
+import { makeButton, burstStars, buzz } from '../systems/UiKit.js';
+import { pickNewSticker } from '../data/stickers.js';
 
 // MenuScene: la schermata titolo. Primo schermo del gioco.
 // Il pulsante Play è anche il primo GESTO dell'utente: sblocca l'audio del
@@ -35,9 +36,11 @@ export default class MenuScene extends Phaser.Scene {
     }
     addGrassFringe(this, W, H - 42, [0x2f8f46, 0x3fa34d]);
     addButterflies(this, W, H - 60);
+    addVignette(this, { strength: 0.11 }); // luce da palcoscenico, appena accennata
     // Mango passeggia sul prato avanti e indietro: il menu respira.
     if (this.textures.exists('elephant_pet')) {
-      const pet = this.add.image(W / 2 - 40, H - 66, 'elephant_pet').setDepth(5).setScale(0.9);
+      const hd = this.textures.exists('art_elephant_hd');
+      const pet = this.add.image(W / 2 - 40, H - 66, hd ? 'art_elephant_hd' : 'elephant_pet').setDepth(5).setScale(hd ? 0.225 : 0.9);
       this.tweens.add({ targets: pet, y: pet.y - 3, duration: 420, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
       this.tweens.add({
         targets: pet,
@@ -256,6 +259,11 @@ export default class MenuScene extends Phaser.Scene {
         pill.setScale(0.2);
         this.tweens.add({ targets: pill, scale: 1, duration: 380, ease: 'Back.easeOut', delay: 250 });
       }
+      // REGALO GIORNALIERO 🎁: alla prima apertura del giorno piove dall'alto
+      // una card con uno sticker nuovo per l'album. La fiammella dello streak
+      // così PROMETTE qualcosa ogni giorno — il rituale che crea l'abitudine.
+      if (grew) this.time.delayedCall(1000, () => this.showDailyGift());
+
       // Traguardo raggiunto OGGI: banner festoso al centro.
       if (grew && [3, 7, 14, 30].includes(count)) {
         const banner = this.add
@@ -309,6 +317,37 @@ export default class MenuScene extends Phaser.Scene {
       .setOrigin(0.5, 1)
       .setDepth(20)
       .setAlpha(0.95);
+  }
+
+  // Card-regalo del giorno: uno sticker nuovo piove dall'alto, sparkle e via.
+  // Se l'album è completo non c'è nulla da pescare: nessuna card (pazienza).
+  showDailyGift() {
+    const progress = this.registry.get('progress');
+    if (!progress) return;
+    const sticker = pickNewSticker(progress.getStickers());
+    if (!sticker || !progress.addSticker(sticker.id)) return;
+
+    const W = GAME_WIDTH;
+    const card = this.add.container(W / 2, -100).setDepth(500);
+    const bg = this.add.graphics();
+    bg.fillStyle(0xfff8e7, 0.98);
+    bg.fillRoundedRect(-115, -60, 230, 120, 16);
+    bg.lineStyle(4, 0xff9f1c, 1);
+    bg.strokeRoundedRect(-115, -60, 230, 120, 16);
+    const head = this.add
+      .text(0, -40, '🎁 Daily gift!  ของขวัญวันนี้!', { fontFamily: 'sans-serif', fontSize: '14px', color: '#c2410c', fontStyle: 'bold' })
+      .setOrigin(0.5);
+    const icon = this.add.text(0, -2, sticker.icon, { fontSize: '38px' }).setOrigin(0.5);
+    const name = this.add
+      .text(0, 38, `${sticker.en} · ${sticker.th}`, { fontFamily: 'sans-serif', fontSize: '14px', color: '#2f6fed', fontStyle: 'bold' })
+      .setOrigin(0.5);
+    card.add([bg, head, icon, name]);
+    if (this.sfx) this.sfx.win();
+    buzz(30);
+    this.tweens.add({ targets: card, y: 150, duration: 450, ease: 'Back.easeOut' });
+    this.tweens.add({ targets: icon, scale: 1.25, delay: 450, duration: 200, yoyo: true });
+    this.time.delayedCall(500, () => burstStars(this, W / 2, 150, { count: 12, scrollFactor: 0 }));
+    this.tweens.add({ targets: card, y: -120, delay: 2800, duration: 350, ease: 'Back.easeIn', onComplete: () => card.destroy() });
   }
 
   createPlayButton() {

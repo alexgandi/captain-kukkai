@@ -72,4 +72,10 @@ export default class SfxManager {
   click() {
     this.tone(600, 0.05, { type: 'square', volume: 0.09 });
   }
+
+  // Sconfitta gentile: tre note che scendono (dispiaciute, mai punitive).
+  fail() {
+    const notes = [523, 392, 330];
+    notes.forEach((f, i) => this.tone(f, 0.2, { type: 'triangle', volume: 0.1, delay: i * 0.16 }));
+  }
 }

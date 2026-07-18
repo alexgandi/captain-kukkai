@@ -7,6 +7,7 @@ import HeartsDisplay from '../ui/HeartsDisplay.js';
 import TouchControls from '../ui/TouchControls.js';
 import { KUKKAI_LEVEL_START } from '../data/dialogues.js';
 import { playFx } from '../systems/playFx.js';
+import { addVignette } from '../systems/ParallaxBackground.js';
 
 // SpaceScene = il livello finale (L8), un'altra "modalità": Captain NON corre più,
 // è dentro una NAVICELLA e vola libero. Niente gravità, niente salto. Spara LASER,
@@ -49,6 +50,7 @@ export default class SpaceScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor(0x0b0a1f); // spazio profondo
 
     this.addStarfield();
+    addVignette(this, { strength: 0.3, tint: 0x27134a, tintAlpha: 0.08 }); // spazio profondo
 
     // --- NAVICELLA DI CAPTAIN ---
     this.ship = this.physics.add.sprite(120, GAME_HEIGHT / 2, 'ship');

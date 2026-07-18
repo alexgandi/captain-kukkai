@@ -73,7 +73,8 @@ export default class PosterScene extends Phaser.Scene {
     this.poster.add(
       this.add.text(W / 2, 330, `⭐ ${name} learned this word! ⭐`, { fontFamily: 'sans-serif', fontSize: '17px', color: th.ink, fontStyle: 'bold' }).setOrigin(0.5)
     );
-    this.poster.add(this.add.image(W / 2 + 310, H - 78, 'elephant_pet').setScale(1.2));
+    const hd = this.textures.exists('art_elephant_hd');
+    this.poster.add(this.add.image(W / 2 + 310, H - 78, hd ? 'art_elephant_hd' : 'elephant_pet').setScale(hd ? 0.3 : 1.2));
 
     // Footer col link: SEMPRE visibile (è l'artefatto condivisibile).
     this.poster.add(

@@ -216,6 +216,36 @@ export function addButterflies(scene, worldWidth, floorTop) {
   }
 }
 
+// VIGNETTA/LUCE DI SCENA: una sola texture radiale (centro trasparente, angoli
+// scuri) riusata ovunque, tinta per tema — il "palcoscenico illuminato" che
+// separa un gioco vero da un prototipo, a costo per-frame zero.
+// strength: opacità della vignetta; tint: velo colore ambiente (opzionale).
+export function addVignette(scene, opts = {}) {
+  const { strength = 0.26, tint = null, tintAlpha = 0.08 } = opts;
+  const key = 'fx_vignette';
+  if (!scene.textures.exists(key)) {
+    const w = 320;
+    const h = 180;
+    const canvas = scene.textures.createCanvas(key, w, h);
+    const ctx = canvas.getContext();
+    const grad = ctx.createRadialGradient(w / 2, h / 2, h * 0.42, w / 2, h / 2, w * 0.62);
+    grad.addColorStop(0, 'rgba(0,0,0,0)');
+    grad.addColorStop(1, 'rgba(0,0,0,1)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, w, h);
+    canvas.refresh();
+  }
+  const W = scene.scale.width;
+  const H = scene.scale.height;
+  // Velo colore ambiente sotto la vignetta (es. bagliore lava, gelo azzurro).
+  if (tint !== null) {
+    scene.add.rectangle(W / 2, H / 2, W, H, tint, tintAlpha).setScrollFactor(0).setDepth(1898);
+  }
+  const v = scene.add.image(W / 2, H / 2, key).setScrollFactor(0).setDepth(1900).setAlpha(strength);
+  v.setDisplaySize(W, H);
+  return v;
+}
+
 // Pulviscolo dorato che fluttua (castello): granelli lenti nella luce.
 export function addDustMotes(scene, worldWidth, floorTop) {
   const span = Math.max(1, worldWidth - 300);

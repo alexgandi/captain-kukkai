@@ -7,7 +7,14 @@ import { buzz } from '../systems/UiKit.js';
 // animazioni procedurali (squash/stretch, waddle) e gestione del "danno" da ostacoli.
 export default class Player extends Phaser.Physics.Arcade.Sprite {
   constructor(scene, x, y) {
-    super(scene, x, y, TEXTURES.captain);
+    // ARTE HD: se c'è la versione 4x del Captain (160x240) la usiamo a scala
+    // 0.25 — stessa dimensione in gioco (40x60), ma nitida con lo zoom della
+    // camera. baseScale moltiplica TUTTE le animazioni di scala qui sotto.
+    const hasHd = scene.textures.exists('art_captain_hd');
+    super(scene, x, y, hasHd ? 'art_captain_hd' : TEXTURES.captain);
+    this.hasArt = hasHd;
+    this.baseScale = hasHd ? 0.25 : 1;
+    this.setScale(this.baseScale);
 
     scene.add.existing(this);
     scene.physics.add.existing(this);
@@ -101,9 +108,10 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     }
 
     // SBATTE LE PALPEBRE da fermo, ogni tanto: il personaggio "è vivo".
+    // (Solo coi fotogrammi disegnati: l'arte HD non ha il frame occhi-chiusi.)
     const standing = onFloor && Math.abs(body.velocity.x) < 5;
     this.blinkTimer = (this.blinkTimer ?? 1800) - delta;
-    if (this.blinkTimer <= 0 && standing && !this.isHurt) {
+    if (this.blinkTimer <= 0 && standing && !this.isHurt && !this.hasArt) {
       this.blinkTimer = 2400 + Math.random() * 2200;
       this.setTexture('captain_blink');
       this.scene.time.delayedCall(140, () => {
@@ -113,14 +121,15 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
 
     // RESPIRO da fermo + DONDOLIO nel passo (solo visivi; niente durante i
     // tween di squash/stretch, che hanno la precedenza).
+    const bs = this.baseScale;
     this.animT = (this.animT || 0) + delta;
     if (!this.isHurt && !this.scene.tweens.isTweening(this)) {
       if (standing) {
         const s = Math.sin(this.animT / 320);
-        this.setScale(1 - s * 0.012, 1 + s * 0.02);
+        this.setScale(bs * (1 - s * 0.012), bs * (1 + s * 0.02));
         this.setAngle(0);
       } else if (onFloor) {
-        this.setScale(1, 1);
+        this.setScale(bs, bs);
         this.setAngle(Math.sin(this.animT / 90) * 3); // waddle da cartone
       } else {
         this.setAngle(0);
@@ -168,8 +177,12 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     if (onFloor && !this.wasOnFloor && this.prevFallSpeed > 150) this.squashLand();
 
     // Cammina a terra -> animazione delle gambe; altrimenti posa ferma.
+    // Con l'arte HD niente scambio di fotogrammi (unica immagine): il movimento
+    // lo raccontano già waddle, squash e polvere.
     const moving = onFloor && Math.abs(vx) > 5;
-    if (moving) {
+    if (this.hasArt) {
+      // nessun frame-swap
+    } else if (moving) {
       this.play('captain_walk', true); // 'true' = non ripartire se già in corso
     } else {
       this.stop();
@@ -185,9 +198,10 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
   celebrate() {
     if (this.isHurt) return;
     if (this.body.blocked.down) this.body.setVelocityY(-190);
+    const bs = this.baseScale;
     this.scene.tweens.killTweensOf(this);
-    this.setScale(0.85, 1.18);
-    this.scene.tweens.add({ targets: this, scaleX: 1, scaleY: 1, duration: 260, ease: 'Back.easeOut' });
+    this.setScale(bs * 0.85, bs * 1.18);
+    this.scene.tweens.add({ targets: this, scaleX: bs, scaleY: bs, duration: 260, ease: 'Back.easeOut' });
   }
 
   // --- "Danno": Captain perde un cuore, lampeggia di rosso ed è invulnerabile ~1,5s. ---
@@ -204,10 +218,12 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     buzz(60); // colpo ricevuto: vibrazione netta (solo Android)
 
     // Azzero eventuali animazioni in corso.
-    this.stop();
-    this.setTexture('captain');
+    if (!this.hasArt) {
+      this.stop();
+      this.setTexture('captain');
+    }
     this.scene.tweens.killTweensOf(this);
-    this.setScale(1, 1);
+    this.setScale(this.baseScale, this.baseScale);
     this.setAngle(0); // niente dondolio residuo mentre lampeggia
 
     if (opts.respawn) {
@@ -243,16 +259,18 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
 
   stretchJump() {
     if (this.isHurt) return;
+    const bs = this.baseScale;
     this.scene.tweens.killTweensOf(this);
-    this.setScale(0.82, 1.2);
-    this.scene.tweens.add({ targets: this, scaleX: 1, scaleY: 1, duration: 280, ease: 'Sine.easeOut' });
+    this.setScale(bs * 0.82, bs * 1.2);
+    this.scene.tweens.add({ targets: this, scaleX: bs, scaleY: bs, duration: 280, ease: 'Sine.easeOut' });
   }
 
   squashLand() {
     if (this.isHurt) return;
+    const bs = this.baseScale;
     this.scene.tweens.killTweensOf(this);
-    this.setScale(1.25, 0.75);
-    this.scene.tweens.add({ targets: this, scaleX: 1, scaleY: 1, duration: 200, ease: 'Back.easeOut' });
+    this.setScale(bs * 1.25, bs * 0.75);
+    this.scene.tweens.add({ targets: this, scaleX: bs, scaleY: bs, duration: 200, ease: 'Back.easeOut' });
     this.spawnDust(4); // atterraggio: nuvoletta più grossa
   }
 }

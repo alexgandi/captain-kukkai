@@ -46,6 +46,10 @@ export default class AudioManager {
   speak(text) {
     if (!text) return;
 
+    // DUCKING: la musica si abbassa mentre la voce parla (frasi lunghe = più a lungo).
+    const music = this.scene && this.scene.registry.get('music');
+    if (music && music.duck) music.duck(Math.min(4, 0.9 + text.length * 0.05));
+
     // 1) C'è un MP3 registrato per questa esatta frase? Riproducilo.
     const key = this.lineToKey[text];
     if (key && this.scene && this.scene.cache.audio.exists(key)) {

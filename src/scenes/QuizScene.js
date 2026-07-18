@@ -4,6 +4,8 @@ import { GAME_WIDTH, GAME_HEIGHT, TEXTURES } from '../config.js';
 import VocabularyManager from '../systems/VocabularyManager.js';
 import AudioManager from '../systems/AudioManager.js';
 import QuizEngine from '../systems/QuizEngine.js';
+import { pickNewSticker } from '../data/stickers.js';
+import { burstStars, buzz } from '../systems/UiKit.js';
 
 // QuizScene: RIPASSO LAMPO dalla mappa — un giro di domande sulle parole di UN
 // livello, senza rigiocarlo. Usa lo stesso MOTORE del quiz di fine livello
@@ -58,6 +60,12 @@ export default class QuizScene extends Phaser.Scene {
 
   endQuiz(score, total) {
     if (this.sfx) this.sfx.win();
+    const music = this.registry.get('music');
+    if (music) music.play('celebration'); // festa anche dopo il quiz lampo
+
+    // QUIZ PERFETTO = uno sticker per l'album: anche i 5 minuti di ripasso
+    // dalla mappa riempiono la collezione (secondo sentiero, zero attrito).
+    if (score >= total) this.time.delayedCall(900, () => this.awardPerfectSticker());
     const msg =
       score >= total ? 'PERFECT! You are amazing!' : score >= Math.ceil(total / 2) ? 'Great job!' : 'Good practice! Try again soon!';
     this.add
@@ -71,6 +79,40 @@ export default class QuizScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
+    this.createBackButton();
+  }
+
+  // Card-premio del quiz perfetto: uno sticker piove dall'alto (come il regalo
+  // giornaliero del menu). Album già completo? Solo stelline, ed è già festa.
+  awardPerfectSticker() {
+    const progress = this.registry.get('progress');
+    const sticker = progress ? pickNewSticker(progress.getStickers()) : null;
+    if (!sticker || !progress.addSticker(sticker.id)) {
+      burstStars(this, GAME_WIDTH / 2, 160, { count: 14, scrollFactor: 0 });
+      return;
+    }
+    const card = this.add.container(GAME_WIDTH / 2, -100).setDepth(500);
+    const bg = this.add.graphics();
+    bg.fillStyle(0xfff8e7, 0.98);
+    bg.fillRoundedRect(-115, -60, 230, 120, 16);
+    bg.lineStyle(4, 0xffd166, 1);
+    bg.strokeRoundedRect(-115, -60, 230, 120, 16);
+    const head = this.add
+      .text(0, -40, '⭐ Perfect! New sticker!', { fontFamily: 'sans-serif', fontSize: '14px', color: '#8a5a17', fontStyle: 'bold' })
+      .setOrigin(0.5);
+    const icon = this.add.text(0, -2, sticker.icon, { fontSize: '38px' }).setOrigin(0.5);
+    const name = this.add
+      .text(0, 38, `${sticker.en} · ${sticker.th}`, { fontFamily: 'sans-serif', fontSize: '14px', color: '#2f6fed', fontStyle: 'bold' })
+      .setOrigin(0.5);
+    card.add([bg, head, icon, name]);
+    if (this.sfx) this.sfx.win();
+    buzz(30);
+    this.tweens.add({ targets: card, y: 150, duration: 450, ease: 'Back.easeOut' });
+    this.time.delayedCall(500, () => burstStars(this, GAME_WIDTH / 2, 150, { count: 12, scrollFactor: 0 }));
+    this.tweens.add({ targets: card, y: -120, delay: 2600, duration: 350, ease: 'Back.easeIn', onComplete: () => card.destroy() });
+  }
+
+  createBackButton() {
     const btn = this.add.container(GAME_WIDTH / 2, GAME_HEIGHT - 60);
     const bg = this.add.graphics();
     bg.fillStyle(0x2f6fed, 1);

@@ -45,12 +45,13 @@ export default class TouchControls {
     if (!TouchControls.isTouchDevice()) return;
     scene.input.addPointer(3); // fino a 4 dita insieme
 
-    const H = scene.scale.height;
     const W = scene.scale.width;
-    // Margini safe-area: sui telefoni col notch i pulsanti si staccano dal bordo
-    // "occupato" (SL a sinistra, SR a destra), così restano sempre toccabili.
+    // Margini safe-area: sui telefoni col notch i pulsanti si staccano dai
+    // bordi "occupati" (SL sinistra, SR destra) e la barra-gesti di iOS in
+    // basso non deve cadere dentro le zone di tocco (SB).
     const SL = SAFE.left;
     const SR = SAFE.right;
+    const H = scene.scale.height - SAFE.bottom;
 
     // Pulsanti GRANDI e staccati dai bordi (in basso ci sono la barra-gesti di
     // iOS e gli angoli arrotondati dei telefoni: lì i tocchi si perdono).

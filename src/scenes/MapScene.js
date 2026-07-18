@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_WIDTH, GAME_HEIGHT, TEXTURES } from '../config.js';
+import { GAME_WIDTH, GAME_HEIGHT, TEXTURES, SAFE } from '../config.js';
 import { t } from '../systems/i18n.js';
 import { makeButton } from '../systems/UiKit.js';
 
@@ -109,8 +109,8 @@ export default class MapScene extends Phaser.Scene {
 
     // Pulsanti dei mini-giochi (verbi d'azione + mini-frasi): sempre disponibili,
     // in basso a sinistra, lontani dalle tappe e dal pulsante Start.
-    this.createMiniGameButton(74, '🏃', t(this, 'action'), 0x3fa34d, 'ActionScene');
-    this.createMiniGameButton(196, '🧩', t(this, 'phrases'), 0x8e44c8, 'PhraseScene');
+    this.createMiniGameButton(SAFE.left + 74, '🏃', t(this, 'action'), 0x3fa34d, 'ActionScene');
+    this.createMiniGameButton(SAFE.left + 196, '🧩', t(this, 'phrases'), 0x8e44c8, 'PhraseScene');
 
     // Pulsante "Start!".
     this.createStartButton();
@@ -137,13 +137,16 @@ export default class MapScene extends Phaser.Scene {
     });
   }
 
-  // Bancarella bonus in alto a sinistra: bloccata mostra i manghi mancanti,
-  // sbloccata pulsa e si può toccare per giocare al Mercato.
+  // Bancarella del Mercato: si APRE da 8 manghi trovati in totale, e una
+  // partita COSTA 3 manghi dal portafoglio. Così ogni mango nascosto ha uno
+  // scopo immediato e rigiocare i livelli per raccoglierli diventa un loop
+  // (prima serviva un impossibile 24/24 e la bancarella restava un miraggio).
   createMarketStall() {
-    const total = [1, 2, 3, 4, 5, 6, 7, 8].reduce((sum, l) => sum + (this.progress ? this.progress.getMangoes(l) : 0), 0);
-    const unlocked = total >= 24;
+    const total = this.progress ? this.progress.getMangoTotal() : 0;
+    const wallet = this.progress ? this.progress.getMangoWallet() : 0;
+    const unlocked = total >= 8;
 
-    const stall = this.add.container(74, 130).setDepth(6);
+    const stall = this.add.container(SAFE.left + 74, 130).setDepth(6);
     const g = this.add.graphics();
     // Tendina a strisce + bancone.
     g.fillStyle(unlocked ? 0xb0392e : 0x5a6570, 1);
@@ -154,7 +157,7 @@ export default class MapScene extends Phaser.Scene {
     g.fillRect(-30, 2, 60, 16);
     const icon = this.add.text(0, 8, unlocked ? '🥭' : '🔒', { fontSize: '18px' }).setOrigin(0.5);
     const label = this.add
-      .text(0, 34, unlocked ? t(this, 'market') : `🥭 ${total}/24`, {
+      .text(0, 34, unlocked ? `${t(this, 'market')} · 🥭 ${wallet}` : `🥭 ${total}/8`, {
         fontFamily: 'sans-serif',
         fontSize: '12px',
         color: unlocked ? '#ffd166' : '#aab6c2',
@@ -169,8 +172,22 @@ export default class MapScene extends Phaser.Scene {
       stall.setInteractive(new Phaser.Geom.Rectangle(-45, -35, 90, 70), Phaser.Geom.Rectangle.Contains);
       stall.input.cursor = 'pointer';
       stall.on('pointerdown', () => {
-        if (this.sfx) this.sfx.click();
-        this.scene.start('MarketScene', { next: this.nextLevel });
+        // Un giro al mercato costa 3 manghi: se non bastano, la bancarella
+        // scuote la testa e mostra quanti ne servono (mai punitiva, solo chiara).
+        if (this.progress && this.progress.getMangoWallet() >= 3 && this.progress.spendMangoes(3)) {
+          if (this.sfx) this.sfx.click();
+          this.scene.start('MarketScene', { next: this.nextLevel });
+        } else {
+          if (this.sfx) this.sfx.tink();
+          this.tweens.add({ targets: stall, angle: 6, duration: 70, yoyo: true, repeat: 3, onComplete: () => stall.setAngle(0) });
+          if (!this.needMangoesMsg || !this.needMangoesMsg.active) {
+            this.needMangoesMsg = this.add
+              .text(stall.x, 190, 'Find 3 🥭 in the levels!', { fontFamily: 'sans-serif', fontSize: '13px', color: '#ffe14d', stroke: '#1a1a2e', strokeThickness: 4 })
+              .setOrigin(0.5)
+              .setDepth(7);
+            this.tweens.add({ targets: this.needMangoesMsg, alpha: 0, delay: 1800, duration: 400, onComplete: () => this.needMangoesMsg.destroy() });
+          }
+        }
       });
     }
   }
