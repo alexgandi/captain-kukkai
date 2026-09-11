@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { GAME_WIDTH } from '../config.js';
 import { burstStars, buzz } from './UiKit.js';
+import { makePanel } from '../systems/UiKit.js';
 
 // QuizEngine: il MOTORE del quiz, condiviso tra il fine-livello e il ripasso
 // lampo dalla mappa. Un solo posto per tutti i tipi di sfida, la difficoltà
@@ -197,16 +198,17 @@ export default class QuizEngine {
     tiles.forEach((t, i) => {
       const x = startX + i * spread;
       const tile = scene.add.container(x, 22);
-      const bg = scene.add.graphics();
-      bg.fillStyle(0xffffff, 0.97);
-      bg.fillRoundedRect(-tileW / 2, -55, tileW, 110, 14);
-      bg.lineStyle(4, 0xffd166, 1);
-      bg.strokeRoundedRect(-tileW / 2, -55, tileW, 110, 14);
+      const bg = makePanel(scene, tileW, 110, { radius: 14, borderWidth: 4 }); // la card del gioco (UiKit)
       tile.add([bg, t.face]);
       tile.setSize(tileW, 110);
       tile.setInteractive(new Phaser.Geom.Rectangle(-tileW / 2, -55, tileW, 110), Phaser.Geom.Rectangle.Contains);
       tile.input.cursor = 'pointer';
-      tile.on('pointerdown', () => this.onChoice(tile, bg, tileW, t.correct));
+      tile.on('pointerdown', () => {
+        // Squash alla pressione (come ogni pulsante del gioco); la risposta
+        // giusta ha già il suo rimbalzo, quindi solo sulle altre.
+        if (!t.correct) scene.tweens.add({ targets: tile, scale: 0.93, duration: 70, yoyo: true, ease: 'Sine.easeOut' });
+        this.onChoice(tile, bg, tileW, t.correct);
+      });
       panel.add(tile);
       this.choiceTiles.push({ tile, correct: t.correct });
     });

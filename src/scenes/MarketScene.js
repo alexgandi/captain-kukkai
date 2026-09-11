@@ -7,7 +7,7 @@ import { ensureAudio, wordsAudioKeys } from '../systems/VoiceLoader.js';
 import { wordKey } from '../data/voiceLines.js';
 import { awardStickers } from '../ui/StickerCard.js';
 import { specialMultiplier } from '../systems/dailySpecial.js';
-import { burstStars } from '../systems/UiKit.js';
+import { burstStars, makePanel } from '../systems/UiKit.js';
 
 // MarketScene: il MERCATO DI KUKKAI — minigioco bonus (sbloccato con 24/24 manghi).
 // Piovono tessere-parola dal cielo del mercato; la voce di Kukkai chiama una
@@ -170,11 +170,8 @@ export default class MarketScene extends Phaser.Scene {
     const W = GAME_WIDTH;
     const H = GAME_HEIGHT;
     this.add.rectangle(W / 2, H / 2, W, H, 0x1a1030, 0.72).setDepth(10);
-    const panel = this.add.graphics().setDepth(11);
-    panel.fillStyle(0xfff3e0, 0.98);
-    panel.fillRoundedRect(W / 2 - 190, H / 2 - 100, 380, 200, 18);
-    panel.lineStyle(4, 0xffd166, 1);
-    panel.strokeRoundedRect(W / 2 - 190, H / 2 - 100, 380, 200, 18);
+    const panel = this.add.container(W / 2, H / 2).setDepth(11);
+    panel.add(makePanel(this, 380, 200, { radius: 18, borderWidth: 4 })); // la card del gioco (UiKit)
     this.add
       .text(W / 2, H / 2 - 56, "Time's up! 🥭", { fontFamily: 'sans-serif', fontSize: '28px', color: '#8a5a17', fontStyle: 'bold' })
       .setOrigin(0.5)

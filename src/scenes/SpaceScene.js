@@ -9,6 +9,7 @@ import { KUKKAI_LEVEL_START } from '../data/dialogues.js';
 import { playFx } from '../systems/playFx.js';
 import { addVignette, buildSpaceStarfield } from '../systems/ParallaxBackground.js';
 import { ensureAudio, pruneAudio, levelAudioKeys } from '../systems/VoiceLoader.js';
+import { makeIconButton } from '../systems/UiKit.js';
 
 // SpaceScene = il livello finale (L8), un'altra "modalità": Captain NON corre più,
 // è dentro una NAVICELLA e vola libero. Niente gravità, niente salto. Spara LASER,
@@ -104,14 +105,7 @@ export default class SpaceScene extends Phaser.Scene {
     this.touchControls = new TouchControls(this, 'space');
 
     // Pulsante PAUSA (o tasto P).
-    const pauseBtn = this.add
-      .text(GAME_WIDTH - SAFE.right - 16, 20, '⏸️', { fontSize: '26px' })
-      .setOrigin(1, 0)
-      .setScrollFactor(0)
-      .setDepth(2000)
-      .setPadding(10) // area di tocco più grande (dita sul telefono)
-      .setInteractive({ useHandCursor: true });
-    pauseBtn.on('pointerdown', () => this.openPause());
+    makeIconButton(this, GAME_WIDTH - SAFE.right - 30, 32, 20, { icon: '⏸', color: 0x8e44c8, depth: 2000, scrollFactor: 0, fontSize: 20, onClick: () => this.openPause() });
     this.input.keyboard.on('keydown-P', () => this.openPause());
 
     // --- HUD ---

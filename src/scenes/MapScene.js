@@ -136,28 +136,21 @@ export default class MapScene extends Phaser.Scene {
     container.add(txt);
   }
 
-  // Pillola di scorciatoia per un mini-gioco (pausa attiva sempre giocabile).
+  // Scorciatoia per un mini-gioco: pulsante "caramella" del UiKit (prima era
+  // una pillola piatta con un tween di pulsazione in conflitto con lo squash).
   createMiniGameButton(x, icon, text, color, sceneKey) {
-    const btn = this.add.container(x, GAME_HEIGHT - 30).setDepth(6);
-    const g = this.add.graphics();
-    g.fillStyle(color, 1);
-    g.fillRoundedRect(-56, -22, 112, 44, 12);
-    g.lineStyle(3, 0xffffff, 1);
-    g.strokeRoundedRect(-56, -22, 112, 44, 12);
-    const ic = this.add.text(-36, 0, icon, { fontSize: '22px' }).setOrigin(0.5);
-    const label = this.add.text(12, 0, text, { fontFamily: 'sans-serif', fontSize: '15px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
-    btn.add([g, ic, label]);
-    // SPECIAL DEL GIORNO: il mini-gioco che oggi vale doppio porta un badge
-    // dorato (e pulsa più forte) — il motivo per riaprire il gioco domani.
-    if (isSpecialToday(sceneKey)) this.addSpecialBadge(btn, 0, -34);
-    this.tweens.add({ targets: btn, scale: isSpecialToday(sceneKey) ? 1.1 : 1.06, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-    btn.setSize(112, 44);
-    btn.setInteractive(new Phaser.Geom.Rectangle(-56, -22, 112, 44), Phaser.Geom.Rectangle.Contains);
-    btn.input.cursor = 'pointer';
-    btn.on('pointerdown', () => {
-      if (this.sfx) this.sfx.click();
-      this.scene.start(sceneKey, { next: this.nextLevel });
+    const btn = makeButton(this, x, GAME_HEIGHT - 30, 116, 44, {
+      icon,
+      label: text,
+      color,
+      fontSize: 15,
+      depth: 6,
+      onClick: () => this.scene.start(sceneKey, { next: this.nextLevel }),
     });
+    // SPECIAL DEL GIORNO: il mini-gioco che oggi vale doppio porta un badge
+    // dorato — il motivo per riaprire il gioco domani.
+    if (isSpecialToday(sceneKey)) this.addSpecialBadge(btn, 0, -34);
+    return btn;
   }
 
   // Bancarella del Mercato: si APRE da 8 manghi trovati in totale, e una

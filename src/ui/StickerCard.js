@@ -1,4 +1,4 @@
-import { burstStars, buzz } from '../systems/UiKit.js';
+import { burstStars, buzz, makePanel } from '../systems/UiKit.js';
 import { pickNewSticker, isAlbumComplete, STICKERS } from '../data/stickers.js';
 
 // StickerCard: la CARD-RIVELAZIONE di uno sticker, condivisa da fine livello,
@@ -33,12 +33,9 @@ export function showStickerCard(scene, sticker, opts = {}) {
   const backSide = scene.add.container(0, 0, [back, backMark]);
 
   // FRONTE: crema (o gradiente d'oro), icona grande, nome inglese + thai.
-  const front = scene.add.graphics();
-  if (rare) front.fillGradientStyle(0xfff4c2, 0xffe27a, 0xffd54f, 0xf2b90b, 1);
-  else front.fillStyle(0xfff8e7, 0.98);
-  front.fillRoundedRect(-CARD_W / 2, -CARD_H / 2, CARD_W, CARD_H, 16);
-  front.lineStyle(4, rare ? 0xd4a017 : 0xffd166, 1);
-  front.strokeRoundedRect(-CARD_W / 2, -CARD_H / 2, CARD_W, CARD_H, 16);
+  const front = rare
+    ? makePanel(scene, CARD_W, CARD_H, { radius: 16, borderWidth: 4, top: 0xfff4c2, bottom: 0xffd54f, border: 0xd4a017 })
+    : makePanel(scene, CARD_W, CARD_H, { radius: 16, borderWidth: 4 });
   const head = scene.add
     .text(0, -40, rare ? '✨ RARE!  หายาก! ✨' : title, { fontFamily: 'sans-serif', fontSize: '14px', color: rare ? '#7a4a00' : '#8a5a17', fontStyle: 'bold' })
     .setOrigin(0.5);

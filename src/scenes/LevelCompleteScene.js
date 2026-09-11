@@ -7,7 +7,7 @@ import { evaluateAchievements, showAchievementToasts } from '../systems/Achievem
 import DialoguePortrait from '../ui/DialoguePortrait.js';
 import { KUKKAI_LEVEL_END } from '../data/dialogues.js';
 import { LEVEL_CONFIG, LEVEL_COUNT } from '../data/levels.js';
-import { makeButton, buzz } from '../systems/UiKit.js';
+import { makeButton, buzz, makePanel } from '../systems/UiKit.js';
 import { addVignette } from '../systems/ParallaxBackground.js';
 import { ensureAudio, levelAudioKeys } from '../systems/VoiceLoader.js';
 import { awardStickers } from '../ui/StickerCard.js';
@@ -277,11 +277,7 @@ export default class LevelCompleteScene extends Phaser.Scene {
   createTile(word, x, y, tileW, tileH) {
     const tile = this.add.container(x, y);
 
-    const bg = this.add.graphics();
-    bg.fillStyle(0xffffff, 0.96);
-    bg.fillRoundedRect(-tileW / 2, -tileH / 2, tileW, tileH, 12);
-    bg.lineStyle(3, 0xffd166, 1);
-    bg.strokeRoundedRect(-tileW / 2, -tileH / 2, tileW, tileH, 12);
+    const bg = makePanel(this, tileW, tileH, { radius: 12, borderWidth: 3 }); // la card del gioco (UiKit)
 
     const icon = this.add.text(0, -32, word.icon || '⭐', { fontSize: '34px' }).setOrigin(0.5);
     const thai = this.add

@@ -15,7 +15,7 @@ import { playFx } from '../systems/playFx.js';
 import { getCostume } from '../data/costumes.js';
 import { showAchievementToasts, getAchievement } from '../systems/Achievements.js';
 import { drawGradientSky, buildJungleBackground, buildIceBackground, buildVolcanoBackground, enrichCity, enrichForest, enrichCastle, buildCityscape, buildForestTrees, buildCastleColumns, buildNightBackground, addFireflies, addGrassFringe, addButterflies, addVignette, bakeTexture } from '../systems/ParallaxBackground.js';
-import { burstStars, buzz } from '../systems/UiKit.js';
+import { burstStars, buzz, makeIconButton } from '../systems/UiKit.js';
 import { ensureAudio, pruneAudio, levelAudioKeys } from '../systems/VoiceLoader.js';
 
 // GameScene: la scena di gioco.
@@ -430,26 +430,11 @@ export default class GameScene extends Phaser.Scene {
     this.hearts = new HeartsDisplay(this, this.player.maxLives);
     this.hearts.set(this.player.lives);
 
-    // --- Pulsante WORD BOOK in alto a destra (o tasto B): rivedi le parole ---
-    const bookBtn = this.add
-      .text(this.scale.width - SAFE.right - 16, 20, '📖', { fontSize: '28px' })
-      .setOrigin(1, 0)
-      .setScrollFactor(0)
-      .setDepth(2000)
-      .setPadding(10) // area di tocco più grande (dita sul telefono)
-      .setInteractive({ useHandCursor: true });
-    bookBtn.on('pointerdown', () => this.openWordBook());
+    // --- Pulsanti WORD BOOK (tasto B) e PAUSA (tasto P) in alto a destra:
+    // rotondi "caramella" (UiKit), leggibili su ogni cielo, tocco >= 44 px ---
+    makeIconButton(this, this.scale.width - SAFE.right - 30, 32, 20, { icon: '📖', color: 0x4a90e2, depth: 2000, scrollFactor: 0, onClick: () => this.openWordBook() });
     this.input.keyboard.on('keydown-B', () => this.openWordBook());
-
-    // --- Pulsante PAUSA (o tasto P): ferma tutto, riprendi o torna alla mappa ---
-    const pauseBtn = this.add
-      .text(this.scale.width - SAFE.right - 62, 20, '⏸️', { fontSize: '26px' })
-      .setOrigin(1, 0)
-      .setScrollFactor(0)
-      .setDepth(2000)
-      .setPadding(10) // area di tocco più grande (dita sul telefono)
-      .setInteractive({ useHandCursor: true });
-    pauseBtn.on('pointerdown', () => this.openPause());
+    makeIconButton(this, this.scale.width - SAFE.right - 78, 32, 20, { icon: '⏸', color: 0x8e44c8, depth: 2000, scrollFactor: 0, fontSize: 20, onClick: () => this.openPause() });
     this.input.keyboard.on('keydown-P', () => this.openPause());
 
     // --- BANNER "nuova arma" all'inizio dei livelli che ne sbloccano una ---

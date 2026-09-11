@@ -1,4 +1,5 @@
 import { SAFE } from '../config.js';
+import { makePanel } from '../systems/UiKit.js';
 
 // VocabularyCard: la carta che appare quando Captain impara una parola.
 // Mostra: icona (immagine) · thai · inglese. Piccola e in alto a SINISTRA,
@@ -26,12 +27,8 @@ export default class VocabularyCard {
     card.setDepth(1000);
     card.setScrollFactor(0); // resta fissa sullo schermo
 
-    // Sfondo bianco arrotondato con bordo giallo caldo.
-    const bg = scene.add.graphics();
-    bg.fillStyle(0xffffff, 0.97);
-    bg.fillRoundedRect(-cardW / 2, -cardH / 2, cardW, cardH, 16);
-    bg.lineStyle(4, 0xffd166, 1);
-    bg.strokeRoundedRect(-cardW / 2, -cardH / 2, cardW, cardH, 16);
+    // La card del gioco (UiKit): crema + oro, riflesso, ombra.
+    const bg = makePanel(scene, cardW, cardH, { radius: 16, borderWidth: 4 });
 
     // Icona (immagine della parola).
     const iconText = scene.add

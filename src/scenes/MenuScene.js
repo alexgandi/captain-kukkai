@@ -4,7 +4,7 @@ import VocabularyManager from '../systems/VocabularyManager.js';
 import AudioManager from '../systems/AudioManager.js';
 import { t, getLang, setLang } from '../systems/i18n.js';
 import { drawGradientSky, drawClouds, addGrassFringe, addButterflies, addVignette } from '../systems/ParallaxBackground.js';
-import { makeButton, burstStars, buzz } from '../systems/UiKit.js';
+import { makeButton, burstStars, buzz, makePanel, makeIconButton } from '../systems/UiKit.js';
 import { ensureAudio, introAudioKeys } from '../systems/VoiceLoader.js';
 import { startAudioWarmup } from '../systems/audioWarmup.js';
 import { wordKey } from '../data/voiceLines.js';
@@ -113,53 +113,23 @@ export default class MenuScene extends Phaser.Scene {
     this.tweens.add({ targets: capImg, y: capImg.y - 6, angle: 2, duration: 1500, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
     this.tweens.add({ targets: kukImg, y: kukImg.y - 6, angle: -2, duration: 1700, yoyo: true, repeat: -1, ease: 'Sine.easeInOut', delay: 400 });
 
-    // Pulsantino Word Book (in alto a destra): rivedi le parole imparate.
-    // Tutta la fila di icone si scosta di SAFE.right sui telefoni col notch.
-    const bookBtn = this.add
-      .text(W - SAFE.right - 16, 14, '📖', { fontSize: '30px' })
-      .setOrigin(1, 0)
-      .setDepth(20)
-      .setPadding(10) // area di tocco più grande (dita sul telefono)
-      .setInteractive({ useHandCursor: true });
-    bookBtn.on('pointerdown', () => {
-      if (this.sfx) this.sfx.click();
-      this.scene.start('WordBookScene', { returnTo: 'MenuScene', resume: false });
-    });
-
-    // Pulsantino Medagliere (accanto al Word Book): vedi le medaglie sbloccate.
-    const medalBtn = this.add
-      .text(W - SAFE.right - 62, 14, '🏅', { fontSize: '30px' })
-      .setOrigin(1, 0)
-      .setDepth(20)
-      .setPadding(10)
-      .setInteractive({ useHandCursor: true });
-    medalBtn.on('pointerdown', () => {
-      if (this.sfx) this.sfx.click();
-      this.scene.start('AchievementsScene', { returnTo: 'MenuScene' });
-    });
-
-    // Pulsantino Guardaroba: scegli il costume di Captain.
-    const wardrobeBtn = this.add
-      .text(W - SAFE.right - 108, 14, '👕', { fontSize: '30px' })
-      .setOrigin(1, 0)
-      .setDepth(20)
-      .setPadding(10)
-      .setInteractive({ useHandCursor: true });
-    wardrobeBtn.on('pointerdown', () => {
-      if (this.sfx) this.sfx.click();
-      this.scene.start('WardrobeScene', { returnTo: 'MenuScene' });
-    });
-
-    // Pulsantino Album degli sticker.
-    const albumBtn = this.add
-      .text(W - SAFE.right - 154, 14, '📔', { fontSize: '30px' })
-      .setOrigin(1, 0)
-      .setDepth(20)
-      .setPadding(10)
-      .setInteractive({ useHandCursor: true });
-    albumBtn.on('pointerdown', () => {
-      if (this.sfx) this.sfx.click();
-      this.scene.start('AlbumScene', { returnTo: 'MenuScene' });
+    // Fila di PULSANTI ROTONDI in alto a destra (Word Book, Medagliere,
+    // Guardaroba, Album): stessa "caramella" dei pulsanti grandi (UiKit),
+    // un colore pastello per icona, area di tocco >= 44 px. Tutta la fila si
+    // scosta di SAFE.right sui telefoni col notch.
+    const iconRow = [
+      { icon: '📖', color: 0x4a90e2, scene: 'WordBookScene', data: { returnTo: 'MenuScene', resume: false } },
+      { icon: '🏅', color: 0xf2a94e, scene: 'AchievementsScene', data: { returnTo: 'MenuScene' } },
+      { icon: '👕', color: 0x8e44c8, scene: 'WardrobeScene', data: { returnTo: 'MenuScene' } },
+      { icon: '📔', color: 0x3fa34d, scene: 'AlbumScene', data: { returnTo: 'MenuScene' } },
+    ];
+    iconRow.forEach((b, i) => {
+      makeIconButton(this, W - SAFE.right - 30 - i * 50, 32, 21, {
+        icon: b.icon,
+        color: b.color,
+        depth: 20,
+        onClick: () => this.scene.start(b.scene, b.data),
+      });
     });
 
     // Pulsantino "For grown-ups" (in basso a destra, piccolo e defilato): apre la
@@ -237,11 +207,7 @@ export default class MenuScene extends Phaser.Scene {
     // tutti gli altri MP3, un file alla volta (vedi systems/audioWarmup.js).
     startAudioWarmup();
     const wotdBox = this.add.container(SAFE.left + 14, 14).setDepth(20);
-    const wbg = this.add.graphics();
-    wbg.fillStyle(0xffffff, 0.92);
-    wbg.fillRoundedRect(0, 0, 200, 58, 12);
-    wbg.lineStyle(3, 0xffd166, 1);
-    wbg.strokeRoundedRect(0, 0, 200, 58, 12);
+    const wbg = makePanel(this, 200, 58, { radius: 12, originX: 0, originY: 0 }); // la card del gioco (UiKit)
     const wtitle = this.add.text(12, 8, t(this, 'wordOfDay'), { fontFamily: 'sans-serif', fontSize: '12px', color: '#8a5a17', fontStyle: 'bold' });
     const wword = this.add.text(12, 26, `${wotd.icon}  ${wotd.english}`, { fontFamily: 'sans-serif', fontSize: '20px', color: '#2f6fed', fontStyle: 'bold' });
     wotdBox.add([wbg, wtitle, wword]);
