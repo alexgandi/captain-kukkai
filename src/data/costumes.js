@@ -2,6 +2,8 @@
 // e parole. Sono un ACCESSORIO (emoji) indossato sopra la testa di Captain nel
 // gioco; il bambino li sceglie nel Guardaroba. `cond(progress)` dice quando si
 // sblocca; `none` è sempre disponibile (nessun cappello extra).
+import { STICKERS } from './stickers.js';
+
 const LEVELS = [1, 2, 3, 4, 5, 6, 7, 8];
 const totalStars = (p) => LEVELS.reduce((s, l) => s + p.getStars(l), 0);
 const totalMangoes = (p) => LEVELS.reduce((s, l) => s + p.getMangoes(l), 0);
@@ -19,6 +21,9 @@ export const COSTUMES = [
   // menu ora PROMETTE qualcosa, non è solo un numero.
   { id: 'flame', emoji: '🔥', name: 'On fire', hint: 'Play 3 days in a row', cond: (p) => (p.streak || 0) >= 3 },
   { id: 'star', emoji: '🌟', name: 'Superstar', hint: 'Play 7 days in a row', cond: (p) => (p.streak || 0) >= 7 },
+  // IL COLLEZIONISTA: l'album completo (24/24, rare comprese) è il traguardo
+  // più lungo del gioco — gli ultimi sticker, i più difficili, premiano qualcosa.
+  { id: 'collector', emoji: '🏆', name: 'Collector', hint: 'Complete the sticker album', cond: (p) => p.getStickers().length >= STICKERS.length },
 ];
 
 export function getCostume(id) {

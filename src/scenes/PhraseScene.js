@@ -5,6 +5,8 @@ import AudioManager from '../systems/AudioManager.js';
 import { PHRASES, PHRASE_DISTRACTORS } from '../data/phrases.js';
 import { showAchievementToasts, getAchievement } from '../systems/Achievements.js';
 import { ensureAudio, phraseAudioKeys } from '../systems/VoiceLoader.js';
+import { awardStickers } from '../ui/StickerCard.js';
+import { specialMultiplier } from '../systems/dailySpecial.js';
 
 // PhraseScene: "Build the words you hear!" — le MINI-FRASI. Kukkai pronuncia
 // una frasetta di due parole (es. "red apple"), il bambino la RICOSTRUISCE
@@ -157,6 +159,10 @@ export default class PhraseScene extends Phaser.Scene {
   endGame() {
     if (this.sfx) this.sfx.win();
     this.audio.speak('Wonderful! You made it!');
+    // PREMIO: partita PERFETTA = uno sticker per l'album (due se oggi è lo
+    // "special del giorno"). Prima la medaglia arrivava una volta e basta;
+    // ora ogni sessione da 2 minuti ha un motivo per essere rigiocata.
+    if (this.score >= ROUNDS) this.time.delayedCall(900, () => awardStickers(this, specialMultiplier('PhraseScene')));
     // MEDAGLIA "Phrase Builder": si sblocca completando le mini-frasi.
     const progress = this.registry.get('progress');
     if (progress && progress.unlockAchievement('builder')) {

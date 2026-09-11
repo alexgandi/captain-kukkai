@@ -5,6 +5,8 @@ import AudioManager from '../systems/AudioManager.js';
 import { ACTION_VERBS } from '../data/actionVerbs.js';
 import { showAchievementToasts, getAchievement } from '../systems/Achievements.js';
 import { ensureAudio, actionAudioKeys } from '../systems/VoiceLoader.js';
+import { awardStickers } from '../ui/StickerCard.js';
+import { specialMultiplier } from '../systems/dailySpecial.js';
 
 // ActionScene: "Do what I say!" — il gioco dei VERBI D'AZIONE (Total Physical
 // Response). Kukkai pronuncia un verbo, il bambino tocca il pulsante giusto e
@@ -185,6 +187,10 @@ export default class ActionScene extends Phaser.Scene {
   endGame() {
     if (this.sfx) this.sfx.win();
     this.audio.speak('Amazing! You did it!');
+    // PREMIO: partita PERFETTA = uno sticker per l'album (due se oggi è lo
+    // "special del giorno"). Prima la medaglia arrivava una volta e basta;
+    // ora ogni sessione da 2 minuti ha un motivo per essere rigiocata.
+    if (this.score >= ROUNDS) this.time.delayedCall(900, () => awardStickers(this, specialMultiplier('ActionScene')));
     this.prompt.setText('');
     // MEDAGLIA "Mover": si sblocca giocando ai verbi d'azione.
     const progress = this.registry.get('progress');

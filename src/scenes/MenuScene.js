@@ -5,10 +5,10 @@ import AudioManager from '../systems/AudioManager.js';
 import { t, getLang, setLang } from '../systems/i18n.js';
 import { drawGradientSky, drawClouds, addGrassFringe, addButterflies, addVignette } from '../systems/ParallaxBackground.js';
 import { makeButton, burstStars, buzz } from '../systems/UiKit.js';
-import { pickNewSticker } from '../data/stickers.js';
 import { ensureAudio, introAudioKeys } from '../systems/VoiceLoader.js';
 import { startAudioWarmup } from '../systems/audioWarmup.js';
 import { wordKey } from '../data/voiceLines.js';
+import { awardStickers } from '../ui/StickerCard.js';
 
 // MenuScene: la schermata titolo. Primo schermo del gioco.
 // Il pulsante Play è anche il primo GESTO dell'utente: sblocca l'audio del
@@ -335,35 +335,10 @@ export default class MenuScene extends Phaser.Scene {
       .setAlpha(0.95);
   }
 
-  // Card-regalo del giorno: uno sticker nuovo piove dall'alto, sparkle e via.
+  // Regalo del giorno: uno sticker nuovo (card che si gira, come a fine livello).
   // Se l'album è completo non c'è nulla da pescare: nessuna card (pazienza).
   showDailyGift() {
-    const progress = this.registry.get('progress');
-    if (!progress) return;
-    const sticker = pickNewSticker(progress.getStickers());
-    if (!sticker || !progress.addSticker(sticker.id)) return;
-
-    const W = GAME_WIDTH;
-    const card = this.add.container(W / 2, -100).setDepth(500);
-    const bg = this.add.graphics();
-    bg.fillStyle(0xfff8e7, 0.98);
-    bg.fillRoundedRect(-115, -60, 230, 120, 16);
-    bg.lineStyle(4, 0xff9f1c, 1);
-    bg.strokeRoundedRect(-115, -60, 230, 120, 16);
-    const head = this.add
-      .text(0, -40, '🎁 Daily gift!  ของขวัญวันนี้!', { fontFamily: 'sans-serif', fontSize: '14px', color: '#c2410c', fontStyle: 'bold' })
-      .setOrigin(0.5);
-    const icon = this.add.text(0, -2, sticker.icon, { fontSize: '38px' }).setOrigin(0.5);
-    const name = this.add
-      .text(0, 38, `${sticker.en} · ${sticker.th}`, { fontFamily: 'sans-serif', fontSize: '14px', color: '#2f6fed', fontStyle: 'bold' })
-      .setOrigin(0.5);
-    card.add([bg, head, icon, name]);
-    if (this.sfx) this.sfx.win();
-    buzz(30);
-    this.tweens.add({ targets: card, y: 150, duration: 450, ease: 'Back.easeOut' });
-    this.tweens.add({ targets: icon, scale: 1.25, delay: 450, duration: 200, yoyo: true });
-    this.time.delayedCall(500, () => burstStars(this, W / 2, 150, { count: 12, scrollFactor: 0 }));
-    this.tweens.add({ targets: card, y: -120, delay: 2800, duration: 350, ease: 'Back.easeIn', onComplete: () => card.destroy() });
+    awardStickers(this, 1, { startDelay: 0, card: { title: '🎁 Daily gift!  ของขวัญวันนี้!' } });
   }
 
   createPlayButton() {

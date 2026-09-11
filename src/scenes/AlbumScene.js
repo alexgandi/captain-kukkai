@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { t } from '../systems/i18n.js';
 import { GAME_WIDTH, GAME_HEIGHT } from '../config.js';
-import { STICKERS } from '../data/stickers.js';
+import { STICKERS, isAlbumComplete } from '../data/stickers.js';
 import AudioManager from '../systems/AudioManager.js';
 
 // AlbumScene: l'ALBUM DEGLI STICKER a tema Thailandia. Uno sticker nuovo per
@@ -24,9 +24,10 @@ export default class AlbumScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor(0x1f3a30); // verde giungla scuro
 
     const owned = new Set(p ? p.getStickers() : []);
-    this.add.text(W / 2, 24, '📔 Sticker Album', { fontFamily: 'sans-serif', fontSize: '26px', color: '#ffd166', fontStyle: 'bold' }).setOrigin(0.5);
+    const complete = isAlbumComplete([...owned]);
+    this.add.text(W / 2, 24, complete ? '🏆 Sticker Album — COMPLETE!' : '📔 Sticker Album', { fontFamily: 'sans-serif', fontSize: '26px', color: '#ffd166', fontStyle: 'bold' }).setOrigin(0.5);
     this.add
-      .text(W / 2, 52, `${owned.size} / ${STICKERS.length}   •   สมุดสติกเกอร์`, { fontFamily: 'sans-serif', fontSize: '14px', color: '#bfe0cf' })
+      .text(W / 2, 52, `${owned.size} / ${STICKERS.length}   •   สมุดสติกเกอร์${complete ? '  •  ครบแล้ว!' : '  •  ✨ = rare'}`, { fontFamily: 'sans-serif', fontSize: '14px', color: '#bfe0cf' })
       .setOrigin(0.5);
 
     // Griglia 6 x 4 di figurine.
@@ -43,15 +44,18 @@ export default class AlbumScene extends Phaser.Scene {
 
       const card = this.add.container(x, y);
       const bg = this.add.graphics();
-      bg.fillStyle(got ? 0xfff8e7 : 0x2a4a3e, 1);
+      // Le RARE hanno la card d'ORO (anche da vuote: si vede che manca qualcosa di prezioso).
+      if (got && s.rare) bg.fillGradientStyle(0xfff4c2, 0xffe27a, 0xffd54f, 0xf2b90b, 1);
+      else bg.fillStyle(got ? 0xfff8e7 : s.rare ? 0x3d3a22 : 0x2a4a3e, 1);
       bg.fillRoundedRect(-55, -37, 110, 74, 10);
-      bg.lineStyle(2.5, got ? 0xffd166 : 0x3a5c4e, 1);
+      bg.lineStyle(2.5, got ? (s.rare ? 0xd4a017 : 0xffd166) : s.rare ? 0x8a6d1e : 0x3a5c4e, 1);
       bg.strokeRoundedRect(-55, -37, 110, 74, 10);
       const icon = this.add.text(0, -10, got ? s.icon : '❓', { fontSize: '26px' }).setOrigin(0.5).setAlpha(got ? 1 : 0.45);
       const name = this.add
         .text(0, 22, got ? s.en : '· · ·', { fontFamily: 'sans-serif', fontSize: '11px', color: got ? '#8a5a17' : '#557a6a', fontStyle: 'bold' })
         .setOrigin(0.5);
       card.add([bg, icon, name]);
+      if (s.rare) card.add(this.add.text(44, -28, '✨', { fontSize: '12px' }).setOrigin(0.5)); // marchio delle rare
 
       if (got) {
         // Tocca la figurina: pronuncia il nome inglese + saltello.

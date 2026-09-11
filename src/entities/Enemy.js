@@ -87,7 +87,9 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
     if (!this.active) return;
     this.setTintFill(0xffffff);
     this.scene.time.delayedCall(90, () => {
-      if (this.active) this.clearTint();
+      if (!this.active) return;
+      this.clearTint();
+      if (this.shiny) this.setTint(0xfff0a0); // il mostro shiny resta dorato
     });
   }
 

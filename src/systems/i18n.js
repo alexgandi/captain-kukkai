@@ -25,6 +25,9 @@ const STRINGS = {
     yourDiploma: 'Your diploma!  🎓   (Space)',
     days: (n) => `🔥 ${n} ${n === 1 ? 'day' : 'days'}`,
     freeBadge: '💚 100% Free • No Ads',
+    special: '⭐ 2× today!',
+    newRecord: 'New record! 🏆',
+    best: (n) => `Best: ${n}`,
   },
   th: {
     play: 'เล่น',
@@ -45,6 +48,9 @@ const STRINGS = {
     yourDiploma: 'รับประกาศนียบัตร!  🎓',
     days: (n) => `🔥 ${n} วัน`,
     freeBadge: '💚 ฟรี 100% • ไม่มีโฆษณา',
+    special: '⭐ วันนี้ 2 เท่า!',
+    newRecord: 'สถิติใหม่! 🏆',
+    best: (n) => `สถิติ: ${n}`,
   },
 };
 

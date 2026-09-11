@@ -14,6 +14,7 @@ export default class ProgressManager {
     this.stars = {}; // { [livello]: 1..3 } — il MIGLIOR risultato ottenuto
     this.mangoes = {}; // { [livello]: 0..3 } — manghi dorati trovati (best)
     this.mangoSpent = 0; // manghi SPESI al Mercato (i trovati - gli spesi = portafoglio)
+    this.marketBest = 0; // RECORD del Mercato di Kukkai (parole prese in 60 s)
     this.mistakes = {}; // { [inglese]: quante volte sbagliata } — per il RIPASSO mirato
     this.achievements = new Set(); // id delle medaglie sbloccate
     this.stickers = new Set(); // id degli sticker dell'album (uno per livello completato)
@@ -36,6 +37,7 @@ export default class ProgressManager {
           stars: this.stars,
           mangoes: this.mangoes,
           mangoSpent: this.mangoSpent,
+          marketBest: this.marketBest,
           mistakes: this.mistakes,
           achievements: [...this.achievements],
           stickers: [...this.stickers],
@@ -61,6 +63,7 @@ export default class ProgressManager {
       this.stars = data.stars || {};
       this.mangoes = data.mangoes || {};
       this.mangoSpent = data.mangoSpent || 0;
+      this.marketBest = data.marketBest || 0;
       this.mistakes = data.mistakes || {};
       (data.achievements || []).forEach((a) => this.achievements.add(a));
       (data.stickers || []).forEach((s) => this.stickers.add(s));
@@ -130,6 +133,18 @@ export default class ProgressManager {
   spendMangoes(n) {
     if (this.getMangoWallet() < n) return false;
     this.mangoSpent += n;
+    this.save();
+    return true;
+  }
+
+  // --- Record del Mercato: ritorna true SOLO se è un nuovo primato ---
+  getMarketBest() {
+    return this.marketBest || 0;
+  }
+
+  setMarketBest(score) {
+    if (score <= (this.marketBest || 0)) return false;
+    this.marketBest = score;
     this.save();
     return true;
   }

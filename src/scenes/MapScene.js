@@ -3,6 +3,7 @@ import { GAME_WIDTH, GAME_HEIGHT, TEXTURES, SAFE } from '../config.js';
 import { t } from '../systems/i18n.js';
 import { makeButton } from '../systems/UiKit.js';
 import { ensureAudio, levelAudioKeys } from '../systems/VoiceLoader.js';
+import { isSpecialToday } from '../systems/dailySpecial.js';
 
 // MapScene: la MAPPA DEL VIAGGIO. Tra un livello e l'altro mostra il percorso di
 // Captain verso Kukkai: 8 tappe (giungla -> ... -> castello -> spazio), le stelle
@@ -126,6 +127,15 @@ export default class MapScene extends Phaser.Scene {
     this.createStartButton();
   }
 
+  // Badge dorato "⭐ 2× today!" sopra un pulsante: oggi quel gioco vale doppio.
+  addSpecialBadge(container, x, y) {
+    const txt = this.add
+      .text(x, y, t(this, 'special'), { fontFamily: 'sans-serif', fontSize: '11px', color: '#7a4a00', fontStyle: 'bold', backgroundColor: '#ffe27a', padding: { x: 6, y: 2 } })
+      .setOrigin(0.5)
+      .setAngle(-6);
+    container.add(txt);
+  }
+
   // Pillola di scorciatoia per un mini-gioco (pausa attiva sempre giocabile).
   createMiniGameButton(x, icon, text, color, sceneKey) {
     const btn = this.add.container(x, GAME_HEIGHT - 30).setDepth(6);
@@ -137,7 +147,10 @@ export default class MapScene extends Phaser.Scene {
     const ic = this.add.text(-36, 0, icon, { fontSize: '22px' }).setOrigin(0.5);
     const label = this.add.text(12, 0, text, { fontFamily: 'sans-serif', fontSize: '15px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
     btn.add([g, ic, label]);
-    this.tweens.add({ targets: btn, scale: 1.06, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    // SPECIAL DEL GIORNO: il mini-gioco che oggi vale doppio porta un badge
+    // dorato (e pulsa più forte) — il motivo per riaprire il gioco domani.
+    if (isSpecialToday(sceneKey)) this.addSpecialBadge(btn, 0, -34);
+    this.tweens.add({ targets: btn, scale: isSpecialToday(sceneKey) ? 1.1 : 1.06, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
     btn.setSize(112, 44);
     btn.setInteractive(new Phaser.Geom.Rectangle(-56, -22, 112, 44), Phaser.Geom.Rectangle.Contains);
     btn.input.cursor = 'pointer';
@@ -175,6 +188,7 @@ export default class MapScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
     stall.add([g, icon, label]);
+    if (unlocked && isSpecialToday('MarketScene')) this.addSpecialBadge(stall, 0, -44);
 
     if (unlocked) {
       this.tweens.add({ targets: stall, scale: 1.08, duration: 650, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });

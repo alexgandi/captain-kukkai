@@ -5,6 +5,9 @@ import VocabularyManager from '../systems/VocabularyManager.js';
 import AudioManager from '../systems/AudioManager.js';
 import { ensureAudio, wordsAudioKeys } from '../systems/VoiceLoader.js';
 import { wordKey } from '../data/voiceLines.js';
+import { awardStickers } from '../ui/StickerCard.js';
+import { specialMultiplier } from '../systems/dailySpecial.js';
+import { burstStars } from '../systems/UiKit.js';
 
 // MarketScene: il MERCATO DI KUKKAI — minigioco bonus (sbloccato con 24/24 manghi).
 // Piovono tessere-parola dal cielo del mercato; la voce di Kukkai chiama una
@@ -180,6 +183,22 @@ export default class MarketScene extends Phaser.Scene {
       .text(W / 2, H / 2 - 12, `You caught ${this.score} words!`, { fontFamily: 'sans-serif', fontSize: '22px', color: '#5a4326' })
       .setOrigin(0.5)
       .setDepth(12);
+    // RECORD personale: si salva, e batterlo è una festa ("New record!" +
+    // stelline). Sotto, il primato da battere la prossima volta.
+    const progress = this.registry.get('progress');
+    const record = progress ? progress.setMarketBest(this.score) : false;
+    const best = progress ? progress.getMarketBest() : this.score;
+    this.add
+      .text(W / 2, H / 2 + 16, record ? t(this, 'newRecord') : t(this, 'best', best), { fontFamily: 'sans-serif', fontSize: '16px', color: record ? '#c2410c' : '#8a5a17', fontStyle: 'bold' })
+      .setOrigin(0.5)
+      .setDepth(12);
+    if (record && this.score > 0) {
+      this.time.delayedCall(300, () => burstStars(this, W / 2, H / 2 + 16, { count: 16, depth: 13 }));
+      this.time.delayedCall(700, () => burstStars(this, W / 2 - 120, H / 2 - 40, { count: 10, depth: 13 }));
+      this.time.delayedCall(900, () => burstStars(this, W / 2 + 120, H / 2 - 40, { count: 10, depth: 13 }));
+    }
+    // STICKER: da 8 parole prese in su (due se oggi è lo special del giorno).
+    if (this.score >= 8) this.time.delayedCall(1200, () => awardStickers(this, specialMultiplier('MarketScene'), { startDelay: 0, card: { depth: 20 } }));
 
     const btn = this.add.container(W / 2, H / 2 + 54).setDepth(12);
     const bg = this.add.graphics();

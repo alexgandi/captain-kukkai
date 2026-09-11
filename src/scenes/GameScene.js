@@ -343,6 +343,25 @@ export default class GameScene extends Phaser.Scene {
     // --- 3 MANGHI DORATI nascosti (sopra piattaforme sparse): da esploratore! ---
     this.buildMangoes(level);
 
+    // --- SORPRESE (mai annunciate: si scoprono e si raccontano tra bambini) ---
+    // 1 volta su 4 una FARFALLA DORATA attraversa il livello: toccarla vale un
+    // mango bonus. 1 volta su 5 un mostro nasce SHINY (dorato, scintillante):
+    // batterlo garantisce uno sticker in più a fine livello. Ogni partita è
+    // un colpo di dadi — lo sguardo da slot machine a ogni incontro.
+    this.goldenButterfly = null;
+    this.shinyDefeated = false;
+    if (Math.random() < 0.25) {
+      this.time.delayedCall(9000 + Math.random() * 12000, () => this.spawnGoldenButterfly());
+    }
+    const shinyPool = this.enemyList.filter((e) => !e.isGuardian);
+    if (shinyPool.length && Math.random() < 0.2) {
+      const e = Phaser.Utils.Array.GetRandom(shinyPool);
+      e.shiny = true;
+      e.setTint(0xfff0a0);
+      e.shinyHalo = this.add.circle(e.x, e.y, 28, 0xffe27a, 0.22).setDepth(3);
+      e.shinyTimer = 0;
+    }
+
     // --- CONTATORE PAROLE nell'HUD: "quante ne mancano" a colpo d'occhio.
     // Senza, il bambino arriva in fondo col tempietto invisibile e non capisce.
     this.runWords = new Set();
@@ -848,6 +867,76 @@ export default class GameScene extends Phaser.Scene {
     });
   }
 
+  // FARFALLA DORATA: entra da un lato dello schermo, svolazza a quota di
+  // salto e attraversa tutta la visuale in ~9 s. Toccarla = mango bonus.
+  spawnGoldenButterfly() {
+    if (this.completing || this.restarting || this.goldenButterfly) return;
+    const cam = this.cameras.main;
+    const W = this.scale.width;
+    const fromLeft = Math.random() < 0.5;
+    const x0 = fromLeft ? cam.scrollX - 40 : cam.scrollX + W + 40;
+    const x1 = fromLeft ? cam.scrollX + W + 60 : cam.scrollX - 60;
+    const yBase = this.floorTopY - 92;
+    // Farfalla D'ORO disegnata (non l'emoji blu tinta): ali dorate con bordo
+    // ambra e corpicino scuro, cotta una volta in una texture 32×24.
+    bakeTexture(this, 'fx_gold_butterfly', 32, 24, (g) => {
+      g.fillStyle(0xd48a00, 1);
+      g.fillEllipse(9, 9, 16, 14);
+      g.fillEllipse(23, 9, 16, 14);
+      g.fillEllipse(10, 17, 12, 10);
+      g.fillEllipse(22, 17, 12, 10);
+      g.fillStyle(0xffd700, 1);
+      g.fillEllipse(9, 9, 12, 10);
+      g.fillEllipse(23, 9, 12, 10);
+      g.fillEllipse(10, 17, 8, 7);
+      g.fillEllipse(22, 17, 8, 7);
+      g.fillStyle(0x3a2a10, 1);
+      g.fillEllipse(16, 12, 4, 16);
+    });
+    const b = this.add.image(x0, yBase, 'fx_gold_butterfly').setDepth(9);
+    b.halo = this.add.circle(x0, yBase, 18, 0xffd700, 0.25).setDepth(8);
+    b.sparkleTimer = 0;
+    this.goldenButterfly = b;
+    this.tweens.add({ targets: b, x: x1, duration: 9000, ease: 'Sine.easeInOut', onComplete: () => this.removeGoldenButterfly() });
+    this.tweens.add({ targets: b, y: yBase - 38, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    this.tweens.add({ targets: b, scaleX: 0.5, duration: 200, yoyo: true, repeat: -1 });
+  }
+
+  removeGoldenButterfly() {
+    const b = this.goldenButterfly;
+    if (!b) return;
+    this.goldenButterfly = null;
+    this.tweens.killTweensOf(b);
+    if (b.halo) b.halo.destroy();
+    b.destroy();
+  }
+
+  updateGoldenButterfly(delta) {
+    const b = this.goldenButterfly;
+    if (!b || !b.active) return;
+    if (b.halo) b.halo.setPosition(b.x, b.y);
+    b.sparkleTimer -= delta;
+    if (b.sparkleTimer <= 0) {
+      b.sparkleTimer = 140;
+      const st = this.add.star(b.x, b.y + 6, 5, 2, 4, 0xffd700, 0.9).setDepth(8);
+      this.tweens.add({ targets: st, y: st.y + 14, alpha: 0, scale: 0.2, duration: 500, onComplete: () => st.destroy() });
+    }
+    // PRESA: basta sfiorarla (niente fisica: un controllo di distanza).
+    if (Phaser.Math.Distance.Between(b.x, b.y, this.player.x, this.player.y - 10) < 36) {
+      const { x, y } = b;
+      this.removeGoldenButterfly();
+      this.mangoesCollected = (this.mangoesCollected || 0) + 1;
+      if (this.mangoHud) {
+        this.mangoHud.setText(`🥭 ${this.mangoesCollected}/3${this.mangoesCollected > 3 ? ' ✨' : ''}`);
+        this.tweens.add({ targets: this.mangoHud, scale: 1.35, duration: 130, yoyo: true, ease: 'Back.easeOut' });
+      }
+      playFx(this, 'sfx_magicfx', 0.5, () => this.sfx && this.sfx.magic());
+      burstStars(this, x, y, { count: 16, colors: [0xffd700, 0xfff1b0, 0xffffff] });
+      buzz(35);
+      this.audio.speak('butterfly'); // è una parola del gioco: la sente anche qui
+    }
+  }
+
   // Programma il prossimo sorvolo dello Yaksha (ogni 15-30 secondi).
   scheduleYakshaFlyby() {
     this.time.delayedCall(15000 + Math.random() * 15000, () => {
@@ -1284,6 +1373,17 @@ export default class GameScene extends Phaser.Scene {
       return;
     }
 
+    // Il mostro SHINY battuto: jackpot visibile + sticker extra a fine livello.
+    if (enemy.shiny) {
+      this.shinyDefeated = true;
+      if (enemy.shinyHalo) enemy.shinyHalo.destroy();
+      burstStars(this, enemy.x, enemy.y - 10, { count: 22, colors: [0xffd700, 0xfff1b0, 0xffffff] });
+      this.cameras.main.flash(180, 255, 236, 150);
+      if (this.sfx) [1047, 1319, 1568, 2093].forEach((f, i) => this.sfx.tone(f, 0.18, { type: 'triangle', volume: 0.1, delay: i * 0.1 }));
+      buzz(50);
+      this.showWeaponBanner('✨ SHINY monster! Bonus sticker at the temple!', '✨ สัตว์ประหลาดแวววาว! สติกเกอร์โบนัสที่วัด!');
+    }
+
     if (word) {
       this.vocab.collect(word.english);
       if (this.progress) this.progress.addWord(word.english); // progresso di partita
@@ -1441,7 +1541,7 @@ export default class GameScene extends Phaser.Scene {
       ease: 'Sine.easeOut',
     });
     this.time.delayedCall(600, () => {
-      this.scene.start('LevelCompleteScene', { level: this.levelNumber, stars: this.earnedStars });
+      this.scene.start('LevelCompleteScene', { level: this.levelNumber, stars: this.earnedStars, shiny: this.shinyDefeated });
     });
   }
 
@@ -1528,7 +1628,7 @@ export default class GameScene extends Phaser.Scene {
 
     // 5) Verso i dialoghi (cliffhanger) e poi lo spazio.
     this.time.delayedCall(4900, () => {
-      this.scene.start('LevelCompleteScene', { level: this.levelNumber, stars: this.earnedStars });
+      this.scene.start('LevelCompleteScene', { level: this.levelNumber, stars: this.earnedStars, shiny: this.shinyDefeated });
     });
   }
 
@@ -1613,10 +1713,23 @@ export default class GameScene extends Phaser.Scene {
         }
       }
     }
+    // Farfalla dorata (se c'è): alone e scia che la seguono, e la PRESA.
+    if (this.goldenButterfly) this.updateGoldenButterfly(delta);
+
     // Pattuglia + magia dei nemici ancora vivi.
     this.enemyList.forEach((enemy) => {
       if (!enemy.active) return;
       enemy.patrol();
+      // Mostro SHINY: l'alone lo segue e ogni tanto lascia una stellina.
+      if (enemy.shinyHalo) {
+        enemy.shinyHalo.setPosition(enemy.x, enemy.y);
+        enemy.shinyTimer -= delta;
+        if (enemy.shinyTimer <= 0) {
+          enemy.shinyTimer = 320;
+          const st = this.add.star(enemy.x - 14 + Math.random() * 28, enemy.y - 10 + Math.random() * 20, 5, 2.5, 5, 0xffe27a, 0.95).setDepth(8);
+          this.tweens.add({ targets: st, y: st.y - 18, alpha: 0, scale: 0.3, duration: 560, onComplete: () => st.destroy() });
+        }
+      }
       // La bollicina-icona segue il nemico che pattuglia.
       if (enemy.iconBubble) {
         enemy.iconBubble.setPosition(enemy.x, enemy.y - enemy.displayHeight / 2 - 16);
