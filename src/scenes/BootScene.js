@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { TEXTURES } from '../config.js';
 import { createPlaceholderTextures } from '../systems/PlaceholderArt.js';
-import { VOICE_LINES } from '../data/voiceLines.js';
+import { GLOBAL_AUDIO } from '../systems/VoiceLoader.js';
 import ProgressManager from '../systems/ProgressManager.js';
 import SfxManager from '../systems/SfxManager.js';
 import MusicManager from '../systems/MusicManager.js';
@@ -15,8 +15,9 @@ export default class BootScene extends Phaser.Scene {
   }
 
   preload() {
-    // BARRA DI CARICAMENTO: gli audio sono ~130 file — su telefono servono
-    // secondi, e senza barra il gioco sembra bloccato su uno schermo nero.
+    // BARRA DI CARICAMENTO: arte, foto e 7 effetti sonori — poca roba, ma su
+    // telefono servono comunque secondi, e senza barra il gioco sembra bloccato
+    // su uno schermo nero. (La VOCE si carica dopo, livello per livello.)
     const W = this.scale.width;
     const H = this.scale.height;
     this.add
@@ -58,27 +59,14 @@ export default class BootScene extends Phaser.Scene {
     this.load.image('kukkai_photo_scared', 'kukkai_scared.jpg'); //  spaventata
     this.load.image('captain_photo_src', 'captain.jpg'); //         Captain!
 
-    // Voce di Kukkai: gli MP3 registrati (in public/audio). Se un file manca,
-    // il loader emette un errore ma continua, e l'AudioManager userà il fallback.
-    VOICE_LINES.forEach((v) => this.load.audio(v.key, `audio/${v.key}.mp3`));
-
-    // Voce del CATTIVO (Yaksha), effetti sonori VERI e sigla del gioco.
-    // Anche qui: se un file manca, playFx usa il fallback sintetico.
-    [
-      'yaksha_laugh',
-      'yaksha_kidnap',
-      'yaksha_boss',
-      'yaksha_defeat',
-      'sfx_horn',
-      'sfx_thud',
-      'sfx_rhino',
-      'sfx_swordfx',
-      'sfx_magicfx',
-      'sfx_laserfx',
-      'sfx_stompfx',
-      'theme_song',
-      'title_jingle', // la SIGLA cantata ("Captain and Teacher Kukkai!")
-    ].forEach((key) => this.load.audio(key, `audio/${key}.mp3`));
+    // AUDIO: qui si caricano SOLO gli effetti sonori globali (7 file, ~7 s).
+    // Tutto il resto — la voce di Kukkai (160+ MP3 in public/audio), lo Yaksha,
+    // la sigla e il tema della mappa — arriva "lazy" quando serve, scena per
+    // scena, tramite systems/VoiceLoader.js: caricare tutto qui costava ~58 MB
+    // di RAM decodificata sui telefoni economici e 164 richieste prima del menu.
+    // Se un file manca, il loader segnala e si continua: AudioManager e playFx
+    // hanno il fallback sintetico.
+    GLOBAL_AUDIO.forEach((key) => this.load.audio(key, `audio/${key}.mp3`));
   }
 
   create() {

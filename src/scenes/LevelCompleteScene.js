@@ -10,6 +10,7 @@ import { KUKKAI_LEVEL_END } from '../data/dialogues.js';
 import { LEVEL_CONFIG, LEVEL_COUNT } from '../data/levels.js';
 import { makeButton, buzz } from '../systems/UiKit.js';
 import { addVignette } from '../systems/ParallaxBackground.js';
+import { ensureAudio, levelAudioKeys } from '../systems/VoiceLoader.js';
 
 // LevelCompleteScene: a fine livello Kukkai fa i complimenti, poi mostra il
 // recap di TUTTE le parole imparate nel livello (tap su una parola = risenti l'inglese).
@@ -30,6 +31,9 @@ export default class LevelCompleteScene extends Phaser.Scene {
     if (music) music.stop();
     this.vocab = new VocabularyManager();
     this.words = this.vocab.getWordsForLevel(this.levelNumber);
+    // Complimenti di Kukkai e parole del recap: quasi sempre già in memoria
+    // (li ha caricati il livello); se mancano, si scaricano ora.
+    ensureAudio(this, levelAudioKeys(this.levelNumber));
     this.progress = this.registry.get('progress');
 
     // MEDAGLIE: a fine livello i progressi sono ormai salvati; controllo se

@@ -2,13 +2,16 @@
 // Strategie per tipo di risorsa:
 //  - index.html (navigazioni): PRIMA la rete (così gli aggiornamenti arrivano),
 //    cache come riserva quando sei offline.
-//  - /assets/ (js con hash nel nome): cache-first — un file con quell'hash non
-//    cambia mai, inutile riscaricarlo.
-//  - /audio/ e il resto (manifest, icone): "stale-while-revalidate" — risposta
-//    subito dalla cache, e intanto si aggiorna in background.
+//  - /assets/ (js con hash nel nome), /audio/, /art/, /fonts/, /icons/ e le
+//    foto: cache-first — una volta scaricati non cambiano più (se cambiano, si
+//    alza la VERSIONE qui sotto). Prima l'audio era "stale-while-revalidate":
+//    ogni sessione riscaricava in background tutti i 5,4 MB di MP3 — soldi
+//    veri sulle SIM prepagate thai.
+//  - il resto (manifest): "stale-while-revalidate" — risposta subito dalla
+//    cache, e intanto si aggiorna in background.
 // La VERSIONE va alzata quando serve buttare le cache vecchie su tutti i
 // dispositivi (l'activate elimina ogni cache con nome diverso da questo).
-const CACHE = 'captain-kukkai-v3'; // v3: fullscreen dinamico + restyle UI
+const CACHE = 'captain-kukkai-v4'; // v4: audio/arte cache-first + voce lazy
 
 self.addEventListener('install', (e) => {
   self.skipWaiting();
@@ -43,8 +46,9 @@ self.addEventListener('fetch', (e) => {
     return;
   }
 
-  // Bundle con hash: cache-first (immutabili).
-  if (url.pathname.includes('/assets/')) {
+  // Bundle con hash, audio, arte, font, icone, foto: cache-first (immutabili
+  // finché non cambia la versione della cache).
+  if (/\/(assets|audio|art|fonts|icons)\//.test(url.pathname) || /\.(jpe?g|png|webp)$/i.test(url.pathname)) {
     e.respondWith(
       caches.match(req).then(
         (hit) =>
@@ -59,7 +63,7 @@ self.addEventListener('fetch', (e) => {
     return;
   }
 
-  // Audio, icone, manifest: cache subito + aggiornamento in background.
+  // Il resto (manifest...): cache subito + aggiornamento in background.
   e.respondWith(
     caches.match(req).then((hit) => {
       const refresh = fetch(req)

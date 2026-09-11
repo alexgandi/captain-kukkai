@@ -2,6 +2,14 @@
 
 Generato da 6 revisori paralleli + verifica avversaria dei bug (15 agenti).
 
+## Stato (aggiornato 2026-09-11)
+
+- **Round 1 (18/7, commit 568ecb2)**: #1 #2 #3 #4 #5 #6 #7 #8 #10, e di #25 le parti (a)(b)(c).
+- **Round 2 (18/7, commit 916ea9e)**: #9 #11 #12 #13 #14 #17 #18 #23; di #16 lo sticker per il Quick Quiz perfetto; di #21 il fail jingle e la musica di festa dopo i quiz.
+- **Round 3 (11/9)**: #15 completo — voce "lazy" per scena (`src/systems/VoiceLoader.js`), boot con 7 SFX invece di 164 MP3, memoria audio liberata a ogni livello (`pruneAudio`), `AudioManager.speak` che scarica al volo la battuta mancante (fallback sintetico dopo 3 s), SW v4 cache-first per audio/arte/font/icone/foto, riscaldamento della cache offline in sottofondo (`src/systems/audioWarmup.js`).
+- **Restano**: #19 (render low-end), #20 (UiKit makePanel/makeIconButton), #22 (rarità sticker + card-flip + album completo), #24 (eventi sorpresa); resti di #16 (record Mercato, "special del giorno"), #21 (crash cancello guardiano, stomp-chain, micro-SFX scudo/atterraggio), #25(d) (sassi/noci attraverso le piattaforme).
+
+
 ## 1. Checkpoints in every level from L3 up + fix L7 respawn inside guardian patrol
 *impatto 5/5 · sforzo 2/5 · difficulty-retention · file: src/scenes/GameScene.js, src/systems/generateLevel.js*
 

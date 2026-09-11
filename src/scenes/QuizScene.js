@@ -6,6 +6,7 @@ import AudioManager from '../systems/AudioManager.js';
 import QuizEngine from '../systems/QuizEngine.js';
 import { pickNewSticker } from '../data/stickers.js';
 import { burstStars, buzz } from '../systems/UiKit.js';
+import { ensureAudio, wordsAudioKeys } from '../systems/VoiceLoader.js';
 
 // QuizScene: RIPASSO LAMPO dalla mappa — un giro di domande sulle parole di UN
 // livello, senza rigiocarlo. Usa lo stesso MOTORE del quiz di fine livello
@@ -46,6 +47,7 @@ export default class QuizScene extends Phaser.Scene {
 
     const vocab = new VocabularyManager();
     this.words = vocab.getWordsForLevel(this.levelNumber);
+    ensureAudio(this, wordsAudioKeys(this.words)); // le voci del quiz (lazy)
     this.quiz = new QuizEngine(this, {
       words: this.words,
       allWords: vocab.all,

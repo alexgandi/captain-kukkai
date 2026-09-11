@@ -4,6 +4,7 @@ import { GAME_WIDTH, GAME_HEIGHT, COLORS, TEXTURES } from '../config.js';
 import AudioManager from '../systems/AudioManager.js';
 import { PHRASES, PHRASE_DISTRACTORS } from '../data/phrases.js';
 import { showAchievementToasts, getAchievement } from '../systems/Achievements.js';
+import { ensureAudio, phraseAudioKeys } from '../systems/VoiceLoader.js';
 
 // PhraseScene: "Build the words you hear!" — le MINI-FRASI. Kukkai pronuncia
 // una frasetta di due parole (es. "red apple"), il bambino la RICOSTRUISCE
@@ -26,6 +27,7 @@ export default class PhraseScene extends Phaser.Scene {
     this.sfx = this.registry.get('sfx');
     const music = this.registry.get('music');
     if (music) music.stop();
+    ensureAudio(this, phraseAudioKeys()); // le mini-frasi di Kukkai (lazy)
 
     this.cameras.main.setBackgroundColor(COLORS.sky);
     this.add.rectangle(W / 2, GAME_HEIGHT - 20, W, 40, 0x6fbf73);

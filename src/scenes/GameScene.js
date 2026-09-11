@@ -16,6 +16,7 @@ import { getCostume } from '../data/costumes.js';
 import { showAchievementToasts, getAchievement } from '../systems/Achievements.js';
 import { drawGradientSky, buildJungleBackground, buildIceBackground, buildVolcanoBackground, enrichCity, enrichForest, enrichCastle, addGrassFringe, addButterflies, addVignette } from '../systems/ParallaxBackground.js';
 import { burstStars, buzz } from '../systems/UiKit.js';
+import { ensureAudio, pruneAudio, levelAudioKeys } from '../systems/VoiceLoader.js';
 
 // GameScene: la scena di gioco.
 // STEP 7: livello lungo (letto dai dati) + camera che scorre e segue Captain.
@@ -45,6 +46,13 @@ export default class GameScene extends Phaser.Scene {
     this.fromCheckpoint = !!data.fromCheckpoint;
     this.hadDeath = !!data.hadDeath;
     const cfg = LEVEL_CONFIG[this.levelNumber] || LEVEL_CONFIG[1];
+    // VOCE DEL LIVELLO (lazy): in memoria restano SOLO gli MP3 di questo livello
+    // (annuncio, complimenti finali, le sue parole, lo Yaksha se compare). Quelli
+    // dei livelli precedenti, della mappa e della sigla vengono liberati: sui
+    // telefoni economici la RAM va tenuta per il gioco, non per l'audio.
+    const voiceKeys = levelAudioKeys(this.levelNumber);
+    pruneAudio(this, voiceKeys);
+    ensureAudio(this, voiceKeys);
     // Il LAYOUT è generato dalle parole del livello (più parole = più lungo).
     // Ogni nemico riceve uno stile dal MIX del livello (nuovi + ripasso vecchi).
     const levelWords = this.vocab.getWordsForLevel(this.levelNumber);

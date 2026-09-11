@@ -8,6 +8,7 @@ import TouchControls from '../ui/TouchControls.js';
 import { KUKKAI_LEVEL_START } from '../data/dialogues.js';
 import { playFx } from '../systems/playFx.js';
 import { addVignette } from '../systems/ParallaxBackground.js';
+import { ensureAudio, pruneAudio, levelAudioKeys } from '../systems/VoiceLoader.js';
 
 // SpaceScene = il livello finale (L8), un'altra "modalità": Captain NON corre più,
 // è dentro una NAVICELLA e vola libero. Niente gravità, niente salto. Spara LASER,
@@ -33,6 +34,10 @@ export default class SpaceScene extends Phaser.Scene {
     if (this.music) this.music.play('space');
 
     this.levelNumber = SPACE_LEVEL;
+    // Voce del livello 8 (lazy) + Yaksha del boss; il resto si libera (vedi GameScene).
+    const voiceKeys = levelAudioKeys(SPACE_LEVEL);
+    pruneAudio(this, voiceKeys);
+    ensureAudio(this, voiceKeys);
     this.restarting = false;
     this.completing = false;
     // Dopo un'esplosione la scena riparte: ricordo che c'è stata una morte (stelle).

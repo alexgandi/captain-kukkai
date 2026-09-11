@@ -4,6 +4,7 @@ import { GAME_WIDTH, GAME_HEIGHT, COLORS, TEXTURES } from '../config.js';
 import AudioManager from '../systems/AudioManager.js';
 import { ACTION_VERBS } from '../data/actionVerbs.js';
 import { showAchievementToasts, getAchievement } from '../systems/Achievements.js';
+import { ensureAudio, actionAudioKeys } from '../systems/VoiceLoader.js';
 
 // ActionScene: "Do what I say!" — il gioco dei VERBI D'AZIONE (Total Physical
 // Response). Kukkai pronuncia un verbo, il bambino tocca il pulsante giusto e
@@ -27,6 +28,7 @@ export default class ActionScene extends Phaser.Scene {
     this.sfx = this.registry.get('sfx');
     const music = this.registry.get('music');
     if (music) music.stop(); // silenzio: si ascoltano i comandi di Kukkai
+    ensureAudio(this, actionAudioKeys()); // i verbi e le frasi di Kukkai (lazy)
 
     // Sfondo allegro: cielo + prato.
     this.cameras.main.setBackgroundColor(COLORS.sky);

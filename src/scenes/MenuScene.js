@@ -6,6 +6,9 @@ import { t, getLang, setLang } from '../systems/i18n.js';
 import { drawGradientSky, drawClouds, addGrassFringe, addButterflies, addVignette } from '../systems/ParallaxBackground.js';
 import { makeButton, burstStars, buzz } from '../systems/UiKit.js';
 import { pickNewSticker } from '../data/stickers.js';
+import { ensureAudio, introAudioKeys } from '../systems/VoiceLoader.js';
+import { startAudioWarmup } from '../systems/audioWarmup.js';
+import { wordKey } from '../data/voiceLines.js';
 
 // MenuScene: la schermata titolo. Primo schermo del gioco.
 // Il pulsante Play è anche il primo GESTO dell'utente: sblocca l'audio del
@@ -197,18 +200,25 @@ export default class MenuScene extends Phaser.Scene {
     // DIFENSIVO per iOS: se l'audio è ancora "locked" si aspetta l'evento di
     // sblocco di Phaser invece di suonare a vuoto; e qualsiasi errore qui non
     // deve MAI rompere lo sblocco dell'audio del resto del gioco.
+    // La sigla (320 KB) si scarica "lazy" appena si apre il menu: al primo tocco
+    // è quasi sempre già pronta; se non lo è ancora, parte appena arriva (purché
+    // siamo ancora nel menu). Conta come "sentita" solo quando parte davvero:
+    // se il primo tocco è subito "Play", la si sentirà alla prossima visita.
+    ensureAudio(this, ['title_jingle']);
     this.input.once('pointerdown', () => {
       try {
-        if (this.cache.audio.exists('title_jingle') && !this.registry.get('jingleHeard')) {
+        if (this.registry.get('jingleHeard')) return;
+        const startJingle = () => {
+          if (!this.scene.isActive() || this.registry.get('jingleHeard')) return; // nel frattempo siamo già nell'intro
+          if (!this.cache.audio.exists('title_jingle')) return;
           this.registry.set('jingleHeard', true);
-          const startJingle = () => {
-            if (!this.scene.isActive()) return; // nel frattempo siamo già nell'intro
-            this.titleJingle = this.sound.add('title_jingle', { volume: 0.5 });
-            this.titleJingle.play();
-          };
-          if (this.sound.locked) this.sound.once(Phaser.Sound.Events.UNLOCKED, startJingle);
-          else startJingle();
-        }
+          this.titleJingle = this.sound.add('title_jingle', { volume: 0.5 });
+          this.titleJingle.once('complete', () => this.titleJingle && this.titleJingle.destroy());
+          this.titleJingle.play();
+        };
+        const whenReady = () => ensureAudio(this, ['title_jingle']).then(startJingle);
+        if (this.sound.locked) this.sound.once(Phaser.Sound.Events.UNLOCKED, whenReady);
+        else whenReady();
       } catch (e) {
         // La sigla è un extra: se fallisce, pazienza.
       }
@@ -220,6 +230,12 @@ export default class MenuScene extends Phaser.Scene {
     const dayIndex = Math.floor(Date.now() / 86400000) % vocab.all.length;
     const wotd = vocab.all[dayIndex];
     this.audio = new AudioManager(this);
+    // Voce "lazy": la parola del giorno e le battute dell'intro si scaricano ora,
+    // in sottofondo, così al tocco (e dopo "Play") non c'è nessuna attesa.
+    ensureAudio(this, [wordKey(wotd.english), ...introAudioKeys()]);
+    // E dopo qualche secondo parte il RISCALDAMENTO della cache offline con
+    // tutti gli altri MP3, un file alla volta (vedi systems/audioWarmup.js).
+    startAudioWarmup();
     const wotdBox = this.add.container(SAFE.left + 14, 14).setDepth(20);
     const wbg = this.add.graphics();
     wbg.fillStyle(0xffffff, 0.92);

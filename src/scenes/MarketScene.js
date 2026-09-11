@@ -3,6 +3,8 @@ import { t } from '../systems/i18n.js';
 import { GAME_WIDTH, GAME_HEIGHT, TEXTURES, SAFE } from '../config.js';
 import VocabularyManager from '../systems/VocabularyManager.js';
 import AudioManager from '../systems/AudioManager.js';
+import { ensureAudio, wordsAudioKeys } from '../systems/VoiceLoader.js';
+import { wordKey } from '../data/voiceLines.js';
 
 // MarketScene: il MERCATO DI KUKKAI — minigioco bonus (sbloccato con 24/24 manghi).
 // Piovono tessere-parola dal cielo del mercato; la voce di Kukkai chiama una
@@ -72,6 +74,9 @@ export default class MarketScene extends Phaser.Scene {
     const learned = progress ? new Set(progress.getCollectedWords()) : new Set();
     this.words = vocab.all.filter((w) => learned.has(w.english));
     if (this.words.length < 3) this.words = vocab.all.slice(); // rete di sicurezza
+    // Le voci delle parole si scaricano in sottofondo (lazy); intanto ogni round
+    // pesca tra quelle GIÀ pronte, così la chiamata di Kukkai è sempre immediata.
+    ensureAudio(this, wordsAudioKeys(this.words));
 
     this.fallers = [];
     this.gameOver = false;
@@ -93,7 +98,9 @@ export default class MarketScene extends Phaser.Scene {
   nextRound() {
     if (this.gameOver) return;
     this.clearFallers();
-    const options = Phaser.Utils.Array.Shuffle(this.words.slice()).slice(0, 3);
+    const ready = this.words.filter((w) => this.cache.audio.exists(wordKey(w.english)));
+    const pool = ready.length >= 3 ? ready : this.words;
+    const options = Phaser.Utils.Array.Shuffle(pool.slice()).slice(0, 3);
     this.target = options[Math.floor(Math.random() * options.length)];
     this.callText.setText(`"${this.target.english}"!`);
     this.audio.speak(this.target.english);

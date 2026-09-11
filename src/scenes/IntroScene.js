@@ -4,6 +4,7 @@ import AudioManager from '../systems/AudioManager.js';
 import { drawGradientSky, drawClouds, addGrassFringe, addVignette } from '../systems/ParallaxBackground.js';
 import DialoguePortrait from '../ui/DialoguePortrait.js';
 import { KUKKAI_INTRO } from '../data/dialogues.js';
+import { ensureAudio, introAudioKeys, levelAudioKeys } from '../systems/VoiceLoader.js';
 
 // IntroScene: Teacher Kukkai spiega la missione a Captain, all'inizio del gioco.
 // Usa il componente riutilizzabile DialoguePortrait. Alla fine avvia GameScene.
@@ -45,6 +46,13 @@ export default class IntroScene extends Phaser.Scene {
 
     // --- Dialogo ---
     this.audio = new AudioManager(this);
+    // Le 5 battute dell'intro (lazy; il menu le ha già chieste in anticipo) e,
+    // alla primissima partita, anche la voce del Livello 1: dopo l'intro si
+    // atterra dritti lì e non deve esserci nessuna attesa.
+    const progressNow = this.registry.get('progress');
+    const introKeys = introAudioKeys();
+    if (!progressNow || progressNow.completedLevels.size === 0) introKeys.push(...levelAudioKeys(1));
+    ensureAudio(this, introKeys);
     this.dialogue = new DialoguePortrait(this, {
       portraitKey: 'kukkai_worried',
       name: 'Teacher Kukkai',

@@ -3,6 +3,7 @@ import { t } from '../systems/i18n.js';
 import { GAME_WIDTH, GAME_HEIGHT, TEXTURES } from '../config.js';
 import VocabularyManager from '../systems/VocabularyManager.js';
 import { evaluateAchievements, showAchievementToasts } from '../systems/Achievements.js';
+import { ensureAudio } from '../systems/VoiceLoader.js';
 
 // RescueScene: il FINALE. Tutti i livelli finiti -> Captain libera Teacher Kukkai.
 // Lieto fine festoso con coriandoli, Kukkai e Captain insieme, e "Play again".
@@ -18,14 +19,19 @@ export default class RescueScene extends Phaser.Scene {
     // Musica di festa per il lieto fine: la SIGLA cantata del gioco (il momento
     // più alto merita il tema!); se il file manca, il vecchio tema sintetico.
     const music = this.registry.get('music');
-    if (this.cache.audio.exists('title_jingle')) {
-      if (music) music.stop();
-      this.jingle = this.sound.add('title_jingle', { volume: 0.6 });
-      this.jingle.play();
-      this.events.once('shutdown', () => this.jingle && this.jingle.destroy());
-    } else if (music) {
-      music.play('celebration');
-    }
+    if (music) music.stop();
+    this.jingle = null;
+    this.events.once('shutdown', () => this.jingle && this.jingle.destroy());
+    // La sigla si carica "lazy" (durante i livelli viene liberata dalla memoria).
+    ensureAudio(this, ['title_jingle']).then(() => {
+      if (!this.scene.isActive()) return;
+      if (this.cache.audio.exists('title_jingle')) {
+        this.jingle = this.sound.add('title_jingle', { volume: 0.6 });
+        this.jingle.play();
+      } else if (music) {
+        music.play('celebration');
+      }
+    });
 
     // Sfondo luminoso + prato: aria di festa.
     this.cameras.main.setBackgroundColor(0x9be0ff);

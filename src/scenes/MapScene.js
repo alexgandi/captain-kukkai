@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT, TEXTURES, SAFE } from '../config.js';
 import { t } from '../systems/i18n.js';
 import { makeButton } from '../systems/UiKit.js';
+import { ensureAudio, levelAudioKeys } from '../systems/VoiceLoader.js';
 
 // MapScene: la MAPPA DEL VIAGGIO. Tra un livello e l'altro mostra il percorso di
 // Captain verso Kukkai: 8 tappe (giungla -> ... -> castello -> spazio), le stelle
@@ -36,15 +37,24 @@ export default class MapScene extends Phaser.Scene {
     // Sulla mappa suona la SIGLA del gioco (ElevenLabs); fallback: tema quieto.
     const music = this.registry.get('music');
     if (music) music.stop();
-    if (this.cache.audio.exists('theme_song')) {
-      this.themeSound = this.sound.add('theme_song', { loop: true, volume: 0.35 });
-      this.themeSound.play();
-      // destroy(), non solo stop(): ogni visita alla mappa ne crea uno nuovo
-      // e i suoni fermati-ma-vivi si accumulano nel sound manager.
-      this.events.once('shutdown', () => this.themeSound && this.themeSound.destroy());
-    } else if (music) {
-      music.play('night');
-    }
+    // Il tema (450 KB) si carica "lazy": dalla cache offline è questione di un
+    // attimo, la primissima volta arriva dopo un secondo di silenzio.
+    // destroy(), non solo stop(): ogni visita alla mappa ne crea uno nuovo
+    // e i suoni fermati-ma-vivi si accumulano nel sound manager.
+    this.themeSound = null;
+    this.events.once('shutdown', () => this.themeSound && this.themeSound.destroy());
+    ensureAudio(this, ['theme_song']).then(() => {
+      if (!this.scene.isActive() || this.themeSound) return; // già altrove (o già in corso)
+      if (this.cache.audio.exists('theme_song')) {
+        this.themeSound = this.sound.add('theme_song', { loop: true, volume: 0.35 });
+        this.themeSound.play();
+      } else if (music) {
+        music.play('night');
+      }
+    });
+    // Mentre il bimbo guarda la mappa, la voce del PROSSIMO livello si scarica
+    // in sottofondo: allo "Start" non c'è nessuna attesa.
+    ensureAudio(this, levelAudioKeys(this.nextLevel));
 
     // Sfondo: sera stellata sopra la carta della mappa (via il colore piatto).
     const skyG = this.add.graphics().setDepth(-12);
