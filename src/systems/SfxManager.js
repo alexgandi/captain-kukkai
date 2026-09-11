@@ -40,9 +40,33 @@ export default class SfxManager {
   }
 
   // Nemico sconfitto / parola imparata: due note allegre in salita (stile "coin").
-  defeat() {
-    this.tone(880, 0.09, { type: 'square', volume: 0.1 });
-    this.tone(1320, 0.13, { type: 'square', volume: 0.1, delay: 0.09 });
+  // `chain` = catena di salti in testa senza toccare terra: ogni anello alza il
+  // tono del 12% (fino a 6) — la scaletta sonora del "sono in serie!", come
+  // la combo del quiz.
+  defeat(chain = 1) {
+    const k = Math.pow(1.12, Math.min(6, Math.max(1, chain)) - 1);
+    this.tone(880 * k, 0.09, { type: 'square', volume: 0.1 });
+    this.tone(1320 * k, 0.13, { type: 'square', volume: 0.1, delay: 0.09 });
+  }
+
+  // Atterraggio: tonfo morbido e basso, appena percettibile ("si sente" il peso).
+  land() {
+    this.tone(150, 0.06, { type: 'sine', volume: 0.06, slideTo: 90 });
+  }
+
+  // "Boing" del salto in testa (fallback sintetico se manca l'MP3).
+  boing() {
+    this.tone(260, 0.12, { type: 'square', slideTo: 720, volume: 0.09 });
+  }
+
+  // Scudo SCARICO: sweep discendente (si "spegne").
+  shieldLock() {
+    this.tone(640, 0.28, { type: 'sawtooth', slideTo: 120, volume: 0.07 });
+  }
+
+  // Scudo di nuovo PRONTO: cinguettio ascendente.
+  shieldReady() {
+    this.tone(780, 0.12, { type: 'triangle', slideTo: 1400, volume: 0.08 });
   }
 
   // Nemico colpito ma vivo (nemici a più colpi): "tink" secco.

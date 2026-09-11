@@ -272,5 +272,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     this.setScale(bs * 1.25, bs * 0.75);
     this.scene.tweens.add({ targets: this, scaleX: bs, scaleY: bs, duration: 200, ease: 'Back.easeOut' });
     this.spawnDust(4); // atterraggio: nuvoletta più grossa
+    const sfx = this.scene.registry.get('sfx');
+    if (sfx && sfx.land) sfx.land(); // tonfo morbido: il salto "pesa"
   }
 }

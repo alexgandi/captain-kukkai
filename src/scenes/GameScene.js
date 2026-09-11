@@ -704,7 +704,26 @@ export default class GameScene extends Phaser.Scene {
     // del pavimento, si schianta qui (non dipendiamo solo dal collider, che con un
     // frame lento potrebbe "bucare" il pavimento sottile).
     this.fallers.getChildren().forEach((obj) => {
-      if (obj.active && obj.y >= this.floorTopY - 13) this.smashFaller(obj);
+      if (!obj.active) return;
+      if (obj.y >= this.floorTopY - 13) {
+        this.smashFaller(obj);
+        return;
+      }
+      // Anche le PIATTAFORME (e i ponti) fermano cocchi e pietre: prima li
+      // attraversavano e colpivano Captain in piedi su un ponte sotto una
+      // crepa (verificato al castello). Si schiantano quando il bordo
+      // inferiore attraversa la superficie di un solido sotto la sorgente.
+      const bottom = obj.y + 12;
+      const prevBottom = bottom - Math.max(0, obj.body.velocity.y) * (delta / 1000) - 1;
+      for (let i = 1; i < this.solids.length; i++) {
+        const b = this.solids[i].body;
+        if (!b || b.top <= obj.spawnY) continue;
+        if (obj.x < b.left || obj.x > b.right) continue;
+        if (bottom >= b.top && prevBottom <= b.top + 6) {
+          this.smashFaller(obj);
+          break;
+        }
+      }
     });
   }
 
@@ -714,6 +733,7 @@ export default class GameScene extends Phaser.Scene {
     const obj = this.fallers.create(d.x, d.spawnY + 20, key);
     obj.setDepth(6);
     obj.smashed = false;
+    obj.spawnY = d.spawnY; // per lo schianto sulle piattaforme sotto la sorgente
     obj.body.setCircle(12);
     // Niente gravità del MONDO (si sommava a quella impostata): uso un'accelerazione
     // mia, così la caduta è prevedibile e non "buca" il pavimento.
@@ -1226,11 +1246,16 @@ export default class GameScene extends Phaser.Scene {
 
     if (comingFromAbove && !enemy.spiked) {
       // Salto in testa (solo nemici SENZA spine in testa): colpo + rimbalzo.
-      playFx(this, 'sfx_stompfx', 0.5); // "boing" vero
+      // CATENA DI STOMP: senza toccare terra ogni salto in testa vale di più
+      // (tono più acuto, più stelline, vibrazione più lunga, "x2!" in aria).
+      // Si azzera all'atterraggio (vedi update).
+      this.stompChain = (this.stompChain || 0) + 1;
+      playFx(this, 'sfx_stompfx', 0.5, () => this.sfx && this.sfx.boing()); // "boing" vero (o sintetico)
       // JUICE: stelline, micro-scossa della camera e vibrazione — il colpo "si sente".
-      burstStars(this, enemy.x, enemy.y - 8, { count: 8 });
+      burstStars(this, enemy.x, enemy.y - 8, { count: 8 + Math.min(8, this.stompChain * 2) });
       this.cameras.main.shake(80, 0.0035);
-      buzz(20);
+      buzz(Math.min(40, 20 + this.stompChain * 5));
+      if (this.stompChain >= 2) this.showComboPop(enemy.x, enemy.y - 44, this.stompChain);
       this.hitEnemy(enemy, 'stomp');
       pBody.setVelocityY(PLAYER.jumpVelocity * 0.6);
     } else {
@@ -1238,6 +1263,17 @@ export default class GameScene extends Phaser.Scene {
       // (I nemici spinati si battono solo con spada/magia.)
       player.takeDamage({ fromX: enemy.x });
     }
+  }
+
+  // "x2!" / "x3!" che sale e svanisce sopra il nemico: la catena di stomp si vede.
+  showComboPop(x, y, n) {
+    const pop = this.add
+      .text(x, y, `x${n}!`, { fontFamily: 'sans-serif', fontSize: `${18 + Math.min(5, n) * 3}px`, color: '#ffd166', fontStyle: 'bold', stroke: '#1a1a2e', strokeThickness: 4 })
+      .setOrigin(0.5)
+      .setDepth(60)
+      .setScale(0.4);
+    this.tweens.add({ targets: pop, scale: 1, duration: 160, ease: 'Back.easeOut' });
+    this.tweens.add({ targets: pop, y: y - 36, alpha: 0, delay: 260, duration: 520, ease: 'Sine.easeIn', onComplete: () => pop.destroy() });
   }
 
   // 🌟 MANGO D'ORO: l'easter egg. Mango diventa dorato per tutto il livello,
@@ -1314,7 +1350,22 @@ export default class GameScene extends Phaser.Scene {
       const gate = this.guardianGate;
       this.guardianGate = null;
       if (this.guardianGateCollider) { this.guardianGateCollider.destroy(); this.guardianGateCollider = null; }
-      this.tweens.add({ targets: gate, alpha: 0, y: gate.y + 50, duration: 480, ease: 'Quad.easeIn', onComplete: () => gate.destroy() });
+      // Il cancello CROLLA: scossa e vibrazione subito, e un tonfo con una
+      // seconda scossa quando tocca terra — la vittoria deve "atterrare".
+      this.cameras.main.shake(250, 0.007);
+      buzz(60);
+      this.tweens.add({
+        targets: gate,
+        alpha: 0,
+        y: gate.y + 50,
+        duration: 480,
+        ease: 'Quad.easeIn',
+        onComplete: () => {
+          gate.destroy();
+          playFx(this, 'sfx_thud', 0.6, () => this.sfx && this.sfx.tink());
+          this.cameras.main.shake(120, 0.005);
+        },
+      });
     }
     if (this.guardianBar) { this.guardianBar.destroy(); this.guardianBar = null; }
     if (this.guardianBarBg) { this.guardianBarBg.destroy(); this.guardianBarBg = null; }
@@ -1358,6 +1409,12 @@ export default class GameScene extends Phaser.Scene {
     if (enemy.health > 0) {
       enemy.flashHurt(); // colpito ma ancora vivo (nemici a più colpi)
       if (this.sfx) this.sfx.tink();
+      // HIT-STOP sul guardiano: 50 ms di mondo fermo a ogni colpo — il colpo
+      // "pesa" (solo su di lui: sui nemici piccoli spezzerebbe il ritmo).
+      if (enemy.isGuardian) {
+        this.physics.world.pause();
+        this.time.delayedCall(50, () => this.physics.world.resume());
+      }
       return;
     }
 
@@ -1365,7 +1422,7 @@ export default class GameScene extends Phaser.Scene {
     const word = this.vocab.getWordByEnglish(enemy.wordEnglish);
     if (enemy.iconBubble) enemy.iconBubble.destroy(); // via la bollicina-icona
     enemy.defeat();
-    if (this.sfx) this.sfx.defeat();
+    if (this.sfx) this.sfx.defeat(source === 'stomp' ? this.stompChain || 1 : 1);
 
     // Il GUARDIANO non insegna una parola: apre il cancello e basta.
     if (enemy.isGuardian) {
@@ -1652,6 +1709,8 @@ export default class GameScene extends Phaser.Scene {
     this.player.update(delta);
     this.attacks.update(delta);
     this.updateShield(delta);
+    // A terra la catena di stomp si azzera (la fisica gira prima di questo update).
+    if (this.stompChain && this.player.body && (this.player.body.blocked.down || this.player.body.touching.down)) this.stompChain = 0;
     // Il cappello dorato segue Captain (premio 3/3 manghi).
     if (this.goldHat) this.goldHat.setPosition(this.player.x, this.player.y - 38);
     // Il costume scelto (cappellino) segue Captain — sopra il cappello dorato.
@@ -1779,11 +1838,15 @@ export default class GameScene extends Phaser.Scene {
       if (this.shieldEnergy === 0) {
         this.shieldLocked = true; // scarico: si blocca fino a ricarica completa
         active = false;
+        if (this.sfx) this.sfx.shieldLock(); // si "spegne": lo senti, non solo lo vedi
       }
     } else {
       // Ricarica quando non è in uso; sblocca solo a piena carica.
       this.shieldEnergy = Math.min(this.shieldMax, this.shieldEnergy + delta);
-      if (this.shieldLocked && this.shieldEnergy >= this.shieldMax) this.shieldLocked = false;
+      if (this.shieldLocked && this.shieldEnergy >= this.shieldMax) {
+        this.shieldLocked = false;
+        if (this.sfx) this.sfx.shieldReady(); // pronto di nuovo: cinguettio
+      }
     }
     this.shieldActive = active;
 
@@ -1812,6 +1875,7 @@ export default class GameScene extends Phaser.Scene {
   // Scintilla di parata quando lo scudo respinge un proiettile.
   deflect(x, y) {
     if (this.sfx) this.sfx.tink();
+    buzz(15); // la parata si sente anche nelle dita
     const spark = this.add.star(x, y, 6, 3, 8, 0xfff2b0).setDepth(52);
     this.tweens.add({ targets: spark, scale: 0, alpha: 0, duration: 220, onComplete: () => spark.destroy() });
   }
