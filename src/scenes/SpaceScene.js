@@ -7,7 +7,7 @@ import HeartsDisplay from '../ui/HeartsDisplay.js';
 import TouchControls from '../ui/TouchControls.js';
 import { KUKKAI_LEVEL_START } from '../data/dialogues.js';
 import { playFx } from '../systems/playFx.js';
-import { addVignette } from '../systems/ParallaxBackground.js';
+import { addVignette, buildSpaceStarfield } from '../systems/ParallaxBackground.js';
 import { ensureAudio, pruneAudio, levelAudioKeys } from '../systems/VoiceLoader.js';
 
 // SpaceScene = il livello finale (L8), un'altra "modalità": Captain NON corre più,
@@ -151,32 +151,10 @@ export default class SpaceScene extends Phaser.Scene {
   }
 
   // Campo stellare + qualche grande pianeta, con parallasse (profondità).
+  // Tessere cotte + TileSprite (vedi ParallaxBackground.js): prima erano 150
+  // cerchi e 30 tween ridisegnati a ogni frame.
   addStarfield() {
-    // Stelle piccole su due strati.
-    [{ sf: 0.2, n: 90, r: 1.2, a: 0.7 }, { sf: 0.45, n: 60, r: 1.8, a: 0.9 }].forEach((layer, li) => {
-      for (let i = 0; i < layer.n; i++) {
-        const x = ((i * 197 + li * 71) % this.worldWidth);
-        const y = (i * 89 + li * 43) % GAME_HEIGHT;
-        const star = this.add.circle(x, y, layer.r, 0xffffff, layer.a).setScrollFactor(layer.sf).setDepth(-20);
-        if (i % 5 === 0) this.tweens.add({ targets: star, alpha: 0.2, duration: 800 + (i % 6) * 180, yoyo: true, repeat: -1 });
-      }
-    });
-    // Pianeti/sole/luna sparsi (decorativi, parallasse lenta).
-    const bodies = [
-      { x: 500, y: 110, r: 44, c: 0xf2a94e, ring: false }, // sole/pianeta arancio
-      { x: 1500, y: 330, r: 60, c: 0x4a78c8, ring: true }, // pianeta con anello
-      { x: 2600, y: 90, r: 34, c: 0xd8d8e0, ring: false }, // luna
-      { x: 3600, y: 300, r: 52, c: 0x8e44c8, ring: false }, // pianeta viola
-      { x: 4600, y: 120, r: 40, c: 0x4be08a, ring: true },
-    ];
-    bodies.forEach((b) => {
-      const p = this.add.circle(b.x, b.y, b.r, b.c).setScrollFactor(0.3).setDepth(-18);
-      p.setAlpha(0.9);
-      if (b.ring) {
-        const ring = this.add.ellipse(b.x, b.y, b.r * 3, b.r * 0.8, 0xffffff, 0).setScrollFactor(0.3).setDepth(-17);
-        ring.setStrokeStyle(4, 0xf2d14e, 0.7);
-      }
-    });
+    buildSpaceStarfield(this, this.worldWidth);
   }
 
   // Crea gli alieni (uno per parola) lungo il mondo, ad altezze alternate.
@@ -217,6 +195,7 @@ export default class SpaceScene extends Phaser.Scene {
       this.physics.add.existing(orb, true);
       this.physics.add.overlap(this.ship, orb, () => {
         if (!orb.active) return;
+        this.tweens.killTweensOf([orb, glow]); // niente tween su oggetti morti
         orb.destroy();
         glow.destroy();
         this.tripleUntil = this.time.now + 6000;
@@ -262,6 +241,7 @@ export default class SpaceScene extends Phaser.Scene {
         this.mangoesCollected += 1;
         this.mangoHud.setText(`🥭 ${this.mangoesCollected}/3`);
         if (this.sfx) this.sfx.click();
+        this.tweens.killTweensOf([mango, halo]);
         mango.destroy();
         halo.destroy();
       });
@@ -635,7 +615,10 @@ export default class SpaceScene extends Phaser.Scene {
   // Distrugge gli oggetti di un gruppo che soddisfano una condizione (fuori scena).
   cleanup(group, isDone) {
     group.getChildren().forEach((o) => {
-      if (o.active && isDone(o)) o.destroy();
+      if (o.active && isDone(o)) {
+        this.tweens.killTweensOf(o); // le comete hanno un tween infinito
+        o.destroy();
+      }
     });
   }
 }

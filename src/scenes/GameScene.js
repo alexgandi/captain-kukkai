@@ -14,7 +14,7 @@ import TouchControls from '../ui/TouchControls.js';
 import { playFx } from '../systems/playFx.js';
 import { getCostume } from '../data/costumes.js';
 import { showAchievementToasts, getAchievement } from '../systems/Achievements.js';
-import { drawGradientSky, buildJungleBackground, buildIceBackground, buildVolcanoBackground, enrichCity, enrichForest, enrichCastle, addGrassFringe, addButterflies, addVignette } from '../systems/ParallaxBackground.js';
+import { drawGradientSky, buildJungleBackground, buildIceBackground, buildVolcanoBackground, enrichCity, enrichForest, enrichCastle, buildCityscape, buildForestTrees, buildCastleColumns, buildNightBackground, addFireflies, addGrassFringe, addButterflies, addVignette, bakeTexture } from '../systems/ParallaxBackground.js';
 import { burstStars, buzz } from '../systems/UiKit.js';
 import { ensureAudio, pruneAudio, levelAudioKeys } from '../systems/VoiceLoader.js';
 
@@ -518,42 +518,31 @@ export default class GameScene extends Phaser.Scene {
     this.physics.add.overlap(this.player, this.hazards, this.handleHazard, null, this);
   }
 
-  // Spine grigie: tante puntine triangolari lungo la larghezza.
+  // Spine grigie: una tessera 16×32 (punta + ombra) cotta una volta e ripetuta
+  // con un TileSprite largo quanto l'ostacolo — niente Graphics per frame.
   drawSpikes(cx, baseY, width) {
-    const g = this.add.graphics();
-    g.setDepth(1);
-    const spikeW = 15;
-    const height = 22;
-    const left = cx - width / 2;
-    for (let x = left; x < left + width - 1; x += spikeW) {
+    bakeTexture(this, 'hz_spikes', 16, 32, (g) => {
       g.fillStyle(0xb7bcc4, 1); // grigio metallo
-      g.fillTriangle(x, baseY, x + spikeW / 2, baseY - height, x + spikeW, baseY);
+      g.fillTriangle(0, 32, 8, 10, 16, 32);
       g.fillStyle(0x8b9099, 1); // ombra a sinistra della punta
-      g.fillTriangle(x, baseY, x + spikeW / 2, baseY - height, x + spikeW / 2, baseY);
-    }
+      g.fillTriangle(0, 32, 8, 10, 8, 32);
+    });
+    this.add.tileSprite(cx, baseY - 16, width, 32, 'hz_spikes').setDepth(1);
   }
 
-  // Fuoco: fiammelle arancioni con cuore giallo; pulsa di trasparenza (flicker).
+  // Fuoco: fiammelle arancioni con cuore giallo (tessera 32×64, due fiamme),
+  // che pulsano di trasparenza (flicker). La collisione non cambia.
   drawFire(cx, baseY, width) {
-    const g = this.add.graphics();
-    g.setDepth(1);
-    const flameW = 20;
-    const left = cx - width / 2;
-    for (let x = left; x < left + width - 1; x += flameW) {
-      g.fillStyle(0xff6a00, 0.95); // fiamma esterna
-      g.fillTriangle(x, baseY, x + flameW / 2, baseY - 34, x + flameW, baseY);
-      g.fillStyle(0xffd21a, 0.95); // cuore giallo
-      g.fillTriangle(x + flameW * 0.25, baseY, x + flameW / 2, baseY - 20, x + flameW * 0.75, baseY);
-    }
-    // Flicker: pulsazione di trasparenza (non tocca la posizione/collisione).
-    this.tweens.add({
-      targets: g,
-      alpha: 0.7,
-      duration: 200,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut',
+    bakeTexture(this, 'hz_fire', 32, 64, (g) => {
+      [0, 16].forEach((x) => {
+        g.fillStyle(0xff6a00, 0.95); // fiamma esterna
+        g.fillTriangle(x, 64, x + 8, 30, x + 16, 64);
+        g.fillStyle(0xffd21a, 0.95); // cuore giallo
+        g.fillTriangle(x + 4, 64, x + 8, 44, x + 12, 64);
+      });
     });
+    const fire = this.add.tileSprite(cx, baseY - 32, width, 64, 'hz_fire').setDepth(1);
+    this.tweens.add({ targets: fire, alpha: 0.7, duration: 200, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
   }
 
   handleHazard(player, hazard) {
@@ -850,6 +839,9 @@ export default class GameScene extends Phaser.Scene {
           const ang = ((Math.PI * 2) / 6) * i;
           this.tweens.add({ targets: s, x: mango.x + Math.cos(ang) * 34, y: mango.y + Math.sin(ang) * 28, alpha: 0, scale: 0, duration: 400, ease: 'Cubic.easeOut', onComplete: () => s.destroy() });
         }
+        // I tween infiniti vanno FERMATI prima di distruggere: altrimenti
+        // continuano a muovere oggetti morti per tutto il livello.
+        this.tweens.killTweensOf([mango, halo]);
         mango.destroy();
         halo.destroy();
       });
@@ -940,6 +932,7 @@ export default class GameScene extends Phaser.Scene {
           onComplete: () => s.destroy(),
         });
       }
+      this.tweens.killTweensOf(heart);
       heart.destroy();
     });
   }
@@ -1028,15 +1021,17 @@ export default class GameScene extends Phaser.Scene {
     drawGradientSky(this, this.envKey);
 
     // Città: grattacieli sullo sfondo al posto delle colline (vedi sotto).
+    // (Tutti gli strati ripetitivi sono TESSERE cotte in texture + TileSprite:
+    // vedi ParallaxBackground.js — un quad per strato, niente Graphics per frame.)
     if (this.theme.buildings) {
-      this.addCityscape(worldWidth, floorTop);
+      buildCityscape(this, worldWidth, floorTop, this.theme.hill); // grattacieli + neon
       enrichCity(this, worldWidth, floorTop); // nuvole + skyline lontano + alberelli
     } else if (this.theme.forest) {
-      this.addForestBackdrop(worldWidth, floorTop);
+      buildForestTrees(this, worldWidth, floorTop, this.theme.hill); // due file di alberi
       enrichForest(this, worldWidth, floorTop); // colline sfumate + felci in primo piano
       addGrassFringe(this, worldWidth, floorTop, [0x3c8a46, 0x2f6d3a]); // erba che ondeggia
     } else if (this.theme.castle) {
-      this.addCastleBackdrop(worldWidth, floorTop);
+      buildCastleColumns(this, worldWidth, floorTop); // colonne, stendardi, torce
       enrichCastle(this, worldWidth, floorTop); // colonne lontane + pulviscolo
     } else if (this.envKey === 'jungle') {
       // GIUNGLA (L1): sfondo a strati (montagne+templi / alberi / cespugli).
@@ -1048,37 +1043,8 @@ export default class GameScene extends Phaser.Scene {
     } else if (this.envKey === 'volcano') {
       buildVolcanoBackground(this, worldWidth, floorTop); // coni e crateri che brillano
     } else {
-      // Notte (e fallback): colline scure; le stelle/luna le aggiunge il blocco sotto.
-      for (let x = 0; x <= worldWidth; x += 300) {
-        const hill = this.add.ellipse(x, floorTop, 280, 150, this.theme.hill);
-        hill.setScrollFactor(0.5); // si muove a metà velocità -> senso di profondità
-        hill.setDepth(-10);
-      }
-    }
-
-    // Tocco "notte": un cielo di stelle sparse che luccicano piano.
-    if (this.theme.stars) {
-      // Luna in alto a destra, fissa (parallasse quasi nulla).
-      const moon = this.add.circle(680, 70, 34, 0xf4f0d8).setScrollFactor(0.1).setDepth(-12);
-      moon.setAlpha(0.95);
-      // Distribuzione deterministica (niente random): passo fisso + sfasamento.
-      let n = 0;
-      for (let x = 20; x <= worldWidth; x += 70) {
-        n++;
-        const y = 30 + ((n * 53) % 180); // altezze varie nella fascia alta del cielo
-        const r = 1 + (n % 3) * 0.6;
-        const star = this.add.circle(x, y, r, 0xffffff).setScrollFactor(0.3).setDepth(-11);
-        star.setAlpha(0.5 + (n % 4) * 0.12);
-        // Un lieve battito luminoso, sfasato per ogni stella.
-        this.tweens.add({
-          targets: star,
-          alpha: 0.25,
-          duration: 900 + (n % 5) * 250,
-          yoyo: true,
-          repeat: -1,
-          ease: 'Sine.easeInOut',
-        });
-      }
+      // Notte (e fallback): colline scure + luna + stelle che luccicano.
+      buildNightBackground(this, worldWidth, floorTop, this.theme.hill);
     }
   }
 
@@ -1086,15 +1052,7 @@ export default class GameScene extends Phaser.Scene {
   // ha una sorpresa — pioggia, neve o braci. Ogni replay sembra nuovo.
   addWeatherAndDetails(worldWidth, floorTop) {
     // Lucciole nella notte: puntini caldi che vagano e pulsano vicino a terra.
-    if (this.theme.stars) {
-      for (let i = 0; i < 12; i++) {
-        const fx = 200 + ((i * 397) % (worldWidth - 400));
-        const fy = 260 + ((i * 61) % 120);
-        const fly = this.add.circle(fx, fy, 2.5, 0xffe98a, 0.9).setDepth(6);
-        this.tweens.add({ targets: fly, alpha: 0.15, duration: 600 + (i % 4) * 220, yoyo: true, repeat: -1 });
-        this.tweens.add({ targets: fly, x: fx + 26, y: fy - 16, duration: 1800 + (i % 5) * 350, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-      }
-    }
+    if (this.theme.stars) addFireflies(this, worldWidth);
 
     // Il meteo arriva solo quando RIGIOCHI un livello già completato.
     const replay = this.progress && this.progress.isLevelDone(this.levelNumber);
@@ -1138,117 +1096,6 @@ export default class GameScene extends Phaser.Scene {
     }
   }
 
-  // Skyline di Bangkok: due file di grattacieli (lontani + vicini) con parallasse,
-  // qualche finestra accesa. Tutto deterministico (niente casualità).
-  addCityscape(worldWidth, floorTop) {
-    const rows = [
-      { color: this.theme.hill, sf: 0.35, depth: -11, base: floorTop - 10, hMin: 120, hMax: 230, step: 130, w: 90 }, // lontani, più chiari
-      { color: 0x5c6b80, sf: 0.6, depth: -9, base: floorTop, hMin: 90, hMax: 180, step: 160, w: 110 }, //             vicini, più scuri
-    ];
-    rows.forEach((row, ri) => {
-      let n = 0;
-      for (let x = 0; x <= worldWidth + row.step; x += row.step) {
-        n++;
-        const h = row.hMin + ((n * 37 + ri * 53) % (row.hMax - row.hMin));
-        const top = row.base - h;
-        const b = this.add.rectangle(x, top + h / 2, row.w, h, row.color);
-        b.setScrollFactor(row.sf);
-        b.setDepth(row.depth);
-        // Finestrelle accese (griglia rada) solo sulla fila vicina.
-        if (ri === 1) {
-          for (let wy = top + 14; wy < row.base - 10; wy += 26) {
-            for (let wx = x - row.w / 2 + 14; wx < x + row.w / 2 - 8; wx += 24) {
-              if ((wx + wy) % 3 === 0) continue; // qualcuna spenta, per varietà
-              const win = this.add.rectangle(wx, wy, 8, 10, 0xffe9a8);
-              win.setScrollFactor(row.sf);
-              win.setDepth(row.depth + 0.1);
-              win.setAlpha(0.85);
-            }
-          }
-          // INSEGNE AL NEON (Bangkok!): colorate, con scritte thai, una ogni 3
-          // grattacieli. Una su due "sfarfalla" come un neon vero.
-          if (n % 3 === 0) {
-            const neonColors = [0xff5aa0, 0x37e0ff, 0xffe14d, 0x4be08a];
-            const neonWords = ['อาหาร', 'โรงแรม', 'ตลาด', 'นวด'];
-            const ci = Math.floor(n / 3) % neonColors.length;
-            const sign = this.add.container(x, top + 30).setScrollFactor(row.sf).setDepth(row.depth + 0.2);
-            const box = this.add.rectangle(0, 0, 64, 22, 0x14101f, 0.9);
-            box.setStrokeStyle(2, neonColors[ci], 1);
-            const txt = this.add
-              .text(0, 0, neonWords[ci], { fontFamily: 'sans-serif', fontSize: '12px', color: '#ffffff' })
-              .setOrigin(0.5)
-              .setTint(neonColors[ci]);
-            sign.add([box, txt]);
-            if (n % 6 === 0) {
-              // Sfarfallio del neon.
-              this.tweens.add({ targets: sign, alpha: 0.35, duration: 90, yoyo: true, repeat: -1, repeatDelay: 1400 + n * 130 });
-            }
-          }
-        }
-      }
-    });
-  }
-
-  // Sfondo di foresta: file di alberi lontani (tronchi + chiome) con parallasse,
-  // per dare profondità dietro agli alberi-dropper in primo piano. Deterministico.
-  addForestBackdrop(worldWidth, floorTop) {
-    const rows = [
-      { sf: 0.35, depth: -11, trunk: 0x3a5230, canopy: this.theme.hill, top: 150, step: 150, cw: 130 }, // lontani, scuri
-      { sf: 0.6, depth: -9, trunk: 0x4a5f34, canopy: 0x3c8a46, top: 210, step: 210, cw: 150 }, //          vicini, più chiari
-    ];
-    rows.forEach((row, ri) => {
-      let n = 0;
-      for (let x = 0; x <= worldWidth + row.step; x += row.step) {
-        n++;
-        const canopyY = row.top + ((n * 29 + ri * 41) % 40);
-        const g = this.add.graphics().setScrollFactor(row.sf).setDepth(row.depth);
-        // Tronco.
-        g.fillStyle(row.trunk, 1);
-        g.fillRect(x - 7, canopyY, 14, floorTop - canopyY);
-        // Chioma tondeggiante.
-        g.fillStyle(row.canopy, 1);
-        g.fillEllipse(x, canopyY, row.cw, row.cw * 0.5);
-        g.fillEllipse(x - row.cw * 0.3, canopyY + 10, row.cw * 0.7, row.cw * 0.4);
-        g.fillEllipse(x + row.cw * 0.3, canopyY + 10, row.cw * 0.7, row.cw * 0.4);
-      }
-    });
-  }
-
-  // Sfondo di castello: colonne di pietra con capitello + stendardi rosso/oro appesi
-  // + qualche torcia accesa, con parallasse. Deterministico.
-  addCastleBackdrop(worldWidth, floorTop) {
-    for (let x = 60; x <= worldWidth; x += 240) {
-      const n = Math.round(x / 240);
-      const g = this.add.graphics().setScrollFactor(0.5).setDepth(-10);
-      // Colonna (fusto + base + capitello).
-      g.fillStyle(0x4a4658, 1);
-      g.fillRect(x - 16, 60, 32, floorTop - 60);
-      g.fillStyle(0x565270, 1); // luce sul fusto
-      g.fillRect(x - 16, 60, 8, floorTop - 60);
-      g.fillStyle(0x39364a, 1); // capitello + base più scuri
-      g.fillRect(x - 22, 60, 44, 14);
-      g.fillRect(x - 22, floorTop - 16, 44, 16);
-
-      // Stendardo appeso a colonne alterne (rosso con bordo/filo dorato).
-      if (n % 2 === 0) {
-        g.fillStyle(0xf2c14e, 1);
-        g.fillRect(x - 15, 96, 30, 4);
-        g.fillStyle(0xb0392e, 1);
-        g.fillRect(x - 13, 100, 26, 66);
-        g.fillTriangle(x - 13, 166, x + 13, 166, x, 182); // punta a V
-        g.fillStyle(0xf2c14e, 1); // emblema dorato
-        g.fillCircle(x, 126, 7);
-      } else {
-        // Torcia: bastone + fiammella che pulsa.
-        g.fillStyle(0x3a2c1c, 1);
-        g.fillRect(x - 2, 120, 4, 22);
-        const flame = this.add.ellipse(x, 116, 12, 20, 0xffa733).setScrollFactor(0.5).setDepth(-9);
-        const core = this.add.ellipse(x, 118, 6, 12, 0xffe14d).setScrollFactor(0.5).setDepth(-9);
-        this.tweens.add({ targets: [flame, core], scaleY: 0.8, alpha: 0.8, duration: 260, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-      }
-    }
-  }
-
   // Helper: crea un rettangolo SOLIDO (corpo statico) e lo registra in `solids`.
   makeSolid(x, y, width, height, color) {
     const block = this.add.rectangle(x, y, width, height, color);
@@ -1264,22 +1111,19 @@ export default class GameScene extends Phaser.Scene {
     this.physics.add.existing(block, true);
     this.solids.push(block);
 
-    const left = x - width / 2;
-    const top = y - height / 2;
-    const g = this.add.graphics().setDepth(3);
-    // Assi verticali del tavolato.
-    g.lineStyle(1, 0x6e4a2a, 0.7);
-    for (let px = left + 6; px < left + width; px += 11) {
-      g.beginPath();
-      g.moveTo(px, top);
-      g.lineTo(px, y + height / 2);
-      g.strokePath();
-    }
-    // Parapetto rosso + filo dorato (tocco thai).
-    g.fillStyle(0xb0392e, 1);
-    g.fillRect(left, top - 4, width, 5);
-    g.fillStyle(0xf2c14e, 1);
-    g.fillRect(left, top - 6, width, 2);
+    // Tavolato + parapetto: una tessera 16×32 (filo dorato, parapetto rosso,
+    // una fuga verticale) ripetuta con un TileSprite alto quanto il ponte.
+    bakeTexture(this, 'hz_bridge', 16, 32, (g) => {
+      g.fillStyle(0xf2c14e, 1); // filo dorato
+      g.fillRect(0, 0, 16, 2);
+      g.fillStyle(0xb0392e, 1); // parapetto rosso
+      g.fillRect(0, 2, 16, 5);
+      g.fillStyle(0x6e4a2a, 0.7); // fuga tra le assi
+      g.fillRect(6, 7, 1, 25);
+    });
+    const top = y - height / 2 - 6;
+    const h = Math.min(height + 6, 32);
+    this.add.tileSprite(x, top + h / 2, width, h, 'hz_bridge').setDepth(3);
     return block;
   }
 
